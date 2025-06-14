@@ -35,6 +35,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          attachments: Json | null
           chat_id: string
           content: string
           created_at: string
@@ -43,6 +44,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          attachments?: Json | null
           chat_id: string
           content: string
           created_at?: string
@@ -51,6 +53,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          attachments?: Json | null
           chat_id?: string
           content?: string
           created_at?: string

@@ -14,8 +14,7 @@ export interface Message {
   content: string;
   created_at?: string;
   reasoning?: string;
-  // Attachments now supported at UI level (not in DB rows yet)
-  attachedFiles?: UploadedFile[];
+  attachedFiles?: UploadedFile[]; // UI usage
 }
 
 export const MODEL_LIST = [
@@ -71,7 +70,17 @@ export function useChat() {
         return { ...msg, content: msg.content, reasoning: undefined };
       }
     }
-    return msg;
+    let attachedFiles: UploadedFile[] = [];
+    if (msg.attachments && Array.isArray(msg.attachments)) {
+      attachedFiles = msg.attachments.map((f: any) => ({
+        name: f.name,
+        type: f.type,
+        url: f.url,
+        // The actual file blob/buffer is not included; used only for upload
+        originalFile: undefined,
+      }));
+    }
+    return { ...msg, attachedFiles };
   };
 
   const fetchChatMessages = useCallback(async (chatId: string) => {
@@ -79,7 +88,7 @@ export function useChat() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('messages')
-      .select('id, role, content, created_at')
+      .select('id, role, content, created_at, attachments') // Fetch attachments
       .eq('chat_id', chatId)
       .order('created_at', { ascending: true });
 
@@ -104,12 +113,18 @@ export function useChat() {
         return;
       }
 
+      // Prepare simplified attachment list for DB (no originalFile)
+      const fileDbData = (attachedFiles || []).map(f => ({
+        name: f.name,
+        type: f.type,
+        url: f.url,
+      }));
+
       // Make new user message with optional attachments
       const userMessage: Message = {
         id: Date.now().toString(),
         role: "user",
         content: inputValue,
-        // @ts-ignore: allow attachedFiles passthrough, not in DB yet
         attachedFiles,
       };
       setMessages((prevMessages) => [...prevMessages, userMessage]);
@@ -133,6 +148,18 @@ export function useChat() {
       ]);
 
       try {
+        // Insert user message into DB with attachments
+        let newMsgInsert = await supabase
+          .from('messages')
+          .insert({
+            chat_id: currentChatId,
+            user_id: user.id,
+            role: 'user',
+            content: inputValue,
+            attachments: fileDbData && fileDbData.length > 0 ? fileDbData : [],
+          });
+        // NOTE: Error handling? Don't block streaming for insert issues, but log if failure.
+
         const response = await fetch(CHAT_HANDLER_URL, {
           method: "POST",
           headers: {
@@ -144,7 +171,7 @@ export function useChat() {
             userId: user.id,
             model: modelOverride || selectedModel,
             webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
-            attachedFiles, // NEW
+            attachedFiles, // Send to edge function as before
           }),
         });
 
@@ -164,28 +191,23 @@ export function useChat() {
           }
           buffer += decoder.decode(value, { stream: true });
 
-          // process each complete event
           while (true) {
-            // Find a full SSE event: ends with \n\n
             const eventEnd = buffer.indexOf("\n\n");
             if (eventEnd === -1) break;
             const rawEvent = buffer.slice(0, eventEnd);
             buffer = buffer.slice(eventEnd + 2);
 
-            // Parse event and data
             let event = "message";
             let data = "";
             for (let line of rawEvent.split("\n")) {
               if (line.startsWith("event:")) event = line.slice(6).trim();
               else if (line.startsWith("data:")) data += line.slice(5).trim();
             }
-            // Handle event types
             if (event === "chatId" && data) {
               streamingNewChatId = data;
               if (!currentChatId) {
                 setCurrentChatId(data);
                 setSidebarRefreshKey(Date.now());
-                // Do NOT fetchChatMessages here
               }
             } else if (event === "reasoning") {
               try {
@@ -229,24 +251,21 @@ export function useChat() {
                 if (!currentChatId && streamingNewChatId) {
                   setCurrentChatId(streamingNewChatId);
                   setSidebarRefreshKey(Date.now());
-                  // Do NOT call fetchChatMessages here -- trust streamed messages!
                 } else if (currentChatId) {
                   // For existing chats, fetch – but do not replace messages if fetch returns empty!
                   const fetchData = await supabase
                     .from('messages')
-                    .select('id, role, content, created_at')
+                    .select('id, role, content, created_at, attachments')
                     .eq('chat_id', currentChatId)
                     .order('created_at', { ascending: true });
 
                   if (fetchData.error) {
                     toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
-                    // Do NOT clear messages
                   } else if ((fetchData.data ?? []).length > 0) {
                     setMessages(
                       fetchData.data.map(parseAssistantMessage)
                     );
                   }
-                  // If fetchData.data is empty, don't clear/overwrite existing messages!
                 }
               } catch {}
               done = true;
@@ -254,7 +273,6 @@ export function useChat() {
               try {
                 const parsed = JSON.parse(data);
                 toast({ title: "Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
-                // Remove the streamed assistant message placeholder
                 setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
                 done = true;
               } catch {}
