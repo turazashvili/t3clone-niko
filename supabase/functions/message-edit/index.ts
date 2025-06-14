@@ -5,20 +5,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    // Always JSON for valid CORS handshake
+    return new Response(JSON.stringify({ok: true}), { headers: corsHeaders });
   }
   try {
     const { id, newContent } = await req.json();
 
-    // Auth
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing auth" }), { status: 401, headers: corsHeaders });
@@ -30,7 +32,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: error?.message || "No user" }), { status: 401, headers: corsHeaders });
     }
 
-    // Only allow user to edit their own user messages
+    // Only allow user to edit their own messages ("user" only)
     const { data: origMsg, error: getError } = await supabaseClient
       .from("messages")
       .select("id, user_id, role")
@@ -53,6 +55,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
+    // Always JSON error response
+    return new Response(JSON.stringify({ error: e.message || "Unexpected error" }), { status: 500, headers: corsHeaders });
   }
 });
