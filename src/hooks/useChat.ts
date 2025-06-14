@@ -150,37 +150,6 @@ export function useChat() {
     [session]
   );
 
-  // Helper for redoing after edit (delete following, send as new prompt)
-  const redoAfterEdit = useCallback(
-    async ({
-      msgId,
-      newContent,
-      attachedFiles,
-      modelOverride,
-      chat_id,
-    }: {
-      msgId: string;
-      newContent: string;
-      attachedFiles?: UploadedFile[];
-      modelOverride?: string;
-      chat_id?: string;
-    }) => {
-      // 1. Delete all following messages
-      await deleteMessagesAfter(msgId);
-
-      // 2. Send the edited message as a new prompt (preserving attachments, chat_id)
-      // This will cause the UI to show ONLY messages up to edited one + the new assistant response
-      await handleSendMessage(
-        modelOverride,
-        undefined,
-        attachedFiles || [],
-        newContent,
-        chat_id
-      );
-    },
-    [deleteMessagesAfter, handleSendMessage]
-  );
-
   // REPLACE THE OLD handleSendMessage with this:
   const handleSendMessage = useCallback(
     async (
@@ -228,6 +197,37 @@ export function useChat() {
       });
     },
     [inputValue, user, currentChatId, selectedModel, webSearchEnabled]
+  );
+
+  // Helper for redoing after edit (delete following, send as new prompt)
+  const redoAfterEdit = useCallback(
+    async ({
+      msgId,
+      newContent,
+      attachedFiles,
+      modelOverride,
+      chat_id,
+    }: {
+      msgId: string;
+      newContent: string;
+      attachedFiles?: UploadedFile[];
+      modelOverride?: string;
+      chat_id?: string;
+    }) => {
+      // 1. Delete all following messages
+      await deleteMessagesAfter(msgId);
+
+      // 2. Send the edited message as a new prompt (preserving attachments, chat_id)
+      // This will cause the UI to show ONLY messages up to edited one + the new assistant response
+      await handleSendMessage(
+        modelOverride,
+        undefined,
+        attachedFiles || [],
+        newContent,
+        chat_id
+      );
+    },
+    [deleteMessagesAfter, handleSendMessage]
   );
 
   const handleNewChat = useCallback(() => {
