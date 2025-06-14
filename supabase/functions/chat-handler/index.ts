@@ -92,12 +92,13 @@ serve(async (req: Request) => {
       conversationHistory = existingMessages.map(msg => ({ role: msg.role, content: msg.content }));
     }
 
-    // Save user's message to DB right away, with attachments if present
+    // Save user's message to DB right away, with attachments if present, and with model
     const userMsgInsertPayload: any = {
       chat_id: currentChatId,
       user_id: userId,
       role: 'user',
       content: userMessageContent,
+      model: model, // <----- ADDED
     };
     // If attachments from client exist, map and add them as metadata for DB
     if (attachedFiles && Array.isArray(attachedFiles) && attachedFiles.length > 0) {
@@ -263,6 +264,7 @@ serve(async (req: Request) => {
                 chat_id: currentChatId,
                 role: 'assistant',
                 content: combinedPayload,
+                model: body.model, // <----- ADDED
               })
               .then(({ error }) => {
                 if (error) console.error('DB error saving assistant message:', error);
