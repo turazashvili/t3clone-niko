@@ -8,6 +8,7 @@ import { UploadedFile } from "@/hooks/useFileUpload";
 import { sendMessageStreaming, parseAssistantMessage } from "./useChatStreaming";
 import { useMessagesRealtime } from "./useMessagesRealtime";
 import { processMessageStream } from "./useMessageStreamer";
+import { formatToastError } from "./formatToastError";
 
 export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -180,7 +181,8 @@ export function useChat() {
         );
 
         if (!res.ok || !res.body) {
-          let errJson, errText;
+          let errJson: any = null;
+          let errText: string | undefined = undefined;
           try {
             errJson = await res.json();
           } catch {
@@ -188,12 +190,7 @@ export function useChat() {
           }
           toast({
             title: "Failed to edit message",
-            description:
-              typeof err === "string"
-                ? err
-                : (err && typeof err === "object" && "message" in err && typeof err.message === "string"
-                  ? err.message
-                  : "Unknown error from server"),
+            description: formatToastError(errJson || errText),
             variant: "destructive",
           });
           setIsLoading(false);
@@ -291,7 +288,7 @@ export function useChat() {
       } catch (e: any) {
         toast({
           title: "Failed to edit message",
-          description: e?.message || "Error connecting to message-edit service",
+          description: formatToastError(e),
           variant: "destructive",
         });
         setIsLoading(false);

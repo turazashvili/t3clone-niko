@@ -3,6 +3,7 @@ import { toast } from "@/hooks/use-toast";
 import { UploadedFile } from "@/hooks/useFileUpload";
 import { Message } from "@/hooks/useChat";
 import { processMessageStream } from "./useMessageStreamer";
+import { formatToastError } from "./formatToastError";
 
 const CHAT_HANDLER_URL = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/chat-handler";
 
@@ -153,12 +154,7 @@ export async function sendMessageStreaming({
       onError: (err) => {
         toast({
           title: "Error",
-          description:
-            typeof err === "string"
-              ? err
-              : (err && typeof err === "object" && "message" in err && typeof err.message === "string"
-                ? err.message
-                : "Unknown error"),
+          description: formatToastError(err),
           variant: "destructive",
         });
         setMessages((prev) => prev.filter((m) => m.id !== userMessage.id && m.id !== assistantMsgId));
