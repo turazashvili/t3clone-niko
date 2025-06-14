@@ -22,15 +22,16 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   }, [messages]);
 
   return (
-    // Use px-4 on all screens to match input box width
-    <div className="flex-1 overflow-y-auto pt-8 pb-24 px-4 space-y-4">
-      {messages.map((msg, index) => (
-        <ChatMessage key={msg.id || index} msg={msg} />
-      ))}
-      <div ref={messagesEndRef} />
+    // Use a centered, fixed-width container for messages to match input bar
+    <div className="flex-1 overflow-y-auto pt-8 pb-24">
+      <div className="max-w-3xl mx-auto px-4 space-y-4">
+        {messages.map((msg, index) => (
+          <ChatMessage key={msg.id || index} msg={msg} />
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
     </div>
   );
 };
 
 export default ChatArea;
-

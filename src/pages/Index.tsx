@@ -56,23 +56,25 @@ const Index = () => {
           )}
         </div>
         {/* Chat Input Area */}
-        <div className="w-full mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
-          <div className="flex items-center justify-between mb-2">
-            <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+        <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6">
+          <div className="max-w-3xl mx-auto px-4">
+            <div className="flex items-center justify-between mb-2">
+              <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+            </div>
+            <ChatInputBar
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              onSend={handleSendMessage}
+              isLoading={isLoading}
+              disabled={!user}
+              user={user}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              webSearchEnabled={webSearchEnabled}
+              setWebSearchEnabled={setWebSearchEnabled}
+            />
+            <FooterNotice />
           </div>
-          <ChatInputBar
-            inputValue={inputValue}
-            setInputValue={setInputValue}
-            onSend={handleSendMessage}
-            isLoading={isLoading}
-            disabled={!user}
-            user={user}
-            selectedModel={selectedModel}
-            setSelectedModel={setSelectedModel}
-            webSearchEnabled={webSearchEnabled}
-            setWebSearchEnabled={setWebSearchEnabled}
-          />
-          <FooterNotice />
         </div>
       </main>
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} afterLogin={() => { /* refreshed via useChat hook */ }} />
