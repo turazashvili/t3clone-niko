@@ -202,38 +202,46 @@ export function useChat() {
         await processMessageStream(reader, {
           onReasoning: (chunk) => {
             streamedReasoning = chunk;
-            console.log("[SSE][editMessage][onReasoning]", { msgId, assistantMsgId, streamedReasoning });
             setMessages(prev => {
-              return prev.map((msg, i) => {
-                // Update both inline assistant after msgId and placeholder by assistantMsgId
-                const isInline =
-                  prev[i - 1]?.id === msgId && msg.role === "assistant";
-                const isPlaceholder = msg.id === assistantMsgId;
-                if (isInline || isPlaceholder) {
-                  return { ...msg, reasoning: streamedReasoning };
-                }
-                return msg;
-              });
+              // Update the UI assistant placeholder
+              const idx = prev.findIndex((m, i) =>
+                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+              );
+              if (idx !== -1 && prev[idx + 1]) {
+                return prev.map((msg, i2) =>
+                  i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
+                );
+              }
+              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+              if (aIdx !== -1) {
+                return prev.map((msg, i2) =>
+                  i2 === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
+                );
+              }
+              return prev;
             });
           },
           onContent: (chunk) => {
             streamedContent += chunk;
-            console.log("[SSE][editMessage][onContent]", { msgId, assistantMsgId, streamedContent });
             setMessages(prev => {
-              return prev.map((msg, i) => {
-                // Update both inline assistant after msgId and placeholder by assistantMsgId
-                const isInline =
-                  prev[i - 1]?.id === msgId && msg.role === "assistant";
-                const isPlaceholder = msg.id === assistantMsgId;
-                if (isInline || isPlaceholder) {
-                  return { ...msg, content: streamedContent };
-                }
-                return msg;
-              });
+              const idx = prev.findIndex((m, i) =>
+                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+              );
+              if (idx !== -1 && prev[idx + 1]) {
+                return prev.map((msg, i2) =>
+                  i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
+                );
+              }
+              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+              if (aIdx !== -1) {
+                return prev.map((msg, i2) =>
+                  i2 === aIdx ? { ...msg, content: streamedContent } : msg
+                );
+              }
+              return prev;
             });
           },
           onDone: async ({ content, reasoning }) => {
-            console.log("[SSE][editMessage][onDone]", { msgId, assistantMsgId, content, reasoning });
             // Refetch the full chat for consistency
             const iMsg = messages.find((m) => m.id === msgId);
             const chatIdToFetch = iMsg?.chat_id || currentChatId;
@@ -250,14 +258,12 @@ export function useChat() {
                   variant: "destructive",
                 });
               } else {
-                console.log("[SSE][editMessage][onDone] setMessages from DB", data);
                 setMessages(() => (data ?? []).map(parseAssistantMessage));
               }
             }
             setIsLoading(false);
           },
           onError: (e) => {
-            console.error("[SSE][editMessage][onError]", e);
             toast({
               title: "Error editing message",
               description: formatToastError(e),

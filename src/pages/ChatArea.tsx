@@ -36,7 +36,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     // Use a centered, fixed-width container for messages to match input bar
     <div className="flex-1 overflow-y-auto pt-8 pb-24">
       <div className="max-w-3xl mx-auto px-4 space-y-4">
-        {/* Remove any filters that skip messages with empty content */}
         {dedupedMessages.map((msg, index) => (
           <ChatMessage key={msg.id || index} msg={msg} />
         ))}
@@ -47,3 +46,4 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
+
