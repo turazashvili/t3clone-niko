@@ -119,7 +119,7 @@ export function useChat() {
 
   // Add editMessage implementation
   const editMessage = useCallback(
-    async (msgId: string, newContent: string) => {
+    async (msgId: string, newContent: string, modelOverride?: string) => {
       if (!session) {
         toast({ title: "Not authenticated", description: "Please log in.", variant: "destructive" });
         setLoginOpen(true);
@@ -127,6 +127,8 @@ export function useChat() {
       }
       setIsLoading(true);
       try {
+        const payload: Record<string, any> = { id: msgId, newContent };
+        if (modelOverride) payload.modelOverride = modelOverride;
         const res = await fetch(
           "https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit",
           {
@@ -135,7 +137,7 @@ export function useChat() {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({ id: msgId, newContent }),
+            body: JSON.stringify(payload),
           }
         );
         const data = await res.json();

@@ -177,9 +177,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                       hr: (props) => (
                         <hr className="my-3 border-white/10" {...props} />
                       ),
-                      code({node, inline, className, children, ...props}) {
+                      code({node, className, children, ...props}) {
                         const match = /language-(\w+)/.exec(className || "");
-                        if (!inline && match) {
+                        // For block code
+                        // @ts-ignore
+                        if (!props.inline && match) {
                           return (
                             <SyntaxHighlighter
                               style={atomDark}
@@ -231,9 +233,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                       hr: (props) => (
                         <hr className="my-3 border-white/10" {...props} />
                       ),
-                      code({node, inline, className, children, ...props}) {
+                      code({node, className, children, ...props}) {
                         const match = /language-(\w+)/.exec(className || "");
-                        if (!inline && match) {
+                        // @ts-ignore
+                        if (!props.inline && match) {
                           return (
                             <SyntaxHighlighter
                               style={atomDark}
