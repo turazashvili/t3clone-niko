@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Supabase client
@@ -5,12 +6,6 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Supabase client
 const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Use service role for DB operations
-
-// Add logs for debugging secrets presence
-console.log("Edge function startup secrets check:");
-console.log("OPENROUTER_API_KEY present?:", !!openRouterApiKey);
-console.log("SUPABASE_URL present?:", !!supabaseUrl);
-console.log("SUPABASE_SERVICE_ROLE_KEY present?:", !!supabaseServiceRoleKey);
 
 const ALLOWED_MODELS = [
   "google/gemini-2.5-pro-preview",
@@ -48,7 +43,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // Identify which secrets are missing, if any
     const missingSecrets = [];
     if (!openRouterApiKey) missingSecrets.push('OPENROUTER_API_KEY');
     if (!supabaseUrl) missingSecrets.push('SUPABASE_URL');
@@ -105,7 +99,7 @@ serve(async (req: Request) => {
 
     conversationHistory.push({ role: 'user', content: userMessageContent });
 
-    // 3. Call OpenRouter API using the selected model, with possible web search:
+    // 3. Call OpenRouter API with streaming, with proper model+websearch logic
     let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
     let body: any = {
       model: modelToUse,
@@ -113,15 +107,17 @@ serve(async (req: Request) => {
         { role: 'system', content: 'You are a helpful assistant.' },
         ...conversationHistory,
       ],
+      stream: true
     };
+
+    // Add websearch if enabled
     if (webSearchEnabled) {
-      // Prefer model:slug:online method if available
       if (typeof modelToUse === "string" && !modelToUse.endsWith(":online")) {
         body.model = modelToUse + ":online";
       }
-      // If not supported, could use plugins fallback:
-      // body.plugins = [{ id: "web" }];
     }
+
+    // Send request to OpenRouter and stream response
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -131,31 +127,76 @@ serve(async (req: Request) => {
       body: JSON.stringify(body),
     });
 
-    if (!openRouterResponse.ok) {
-      const errorData = await openRouterResponse.json();
-      console.error('OpenRouter API error:', errorData);
+    if (!openRouterResponse.ok || !openRouterResponse.body) {
+      const errorData = await openRouterResponse.json().catch(() => ({}));
       throw new Error(`OpenRouter API error: ${errorData.error?.message || openRouterResponse.statusText}`);
     }
 
-    const openRouterData = await openRouterResponse.json();
-    const assistantMessageContent = openRouterData.choices[0]?.message?.content;
+    // Prepare streaming response to client
+    const decoder = new TextDecoder();
+    let assistantMessageContent = "";
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = openRouterResponse.body.getReader();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            // OpenRouter streams in SSE format, lines prefixed by "data: "
+            let lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data:")) {
+                const jsonStr = trimmed.substring(5).trim();
+                if (jsonStr === "[DONE]") {
+                  controller.close();
+                  break;
+                }
+                try {
+                  const data = JSON.parse(jsonStr);
+                  const delta = data.choices?.[0]?.delta?.content ?? "";
+                  if (delta) {
+                    assistantMessageContent += delta;
+                    controller.enqueue(new TextEncoder().encode(delta));
+                  }
+                } catch (err) {
+                  // Ignore bad chunks
+                }
+              }
+            }
+          }
+        } catch (err) {
+          controller.error(err);
+        }
+      }
+    });
 
-    if (!assistantMessageContent) {
-      throw new Error('No content in OpenRouter response');
-    }
-
-    // 4. Save assistant's response
-    const { error: assistantMessageError } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        chat_id: currentChatId,
-        role: 'assistant',
-        content: assistantMessageContent,
+    // After stream ends, save assistant message to DB in background
+    stream
+      .getReader()
+      .closed
+      .then(async () => {
+        if (assistantMessageContent.trim()) {
+          await supabaseAdmin
+            .from('messages')
+            .insert({
+              chat_id: currentChatId,
+              role: 'assistant',
+              content: assistantMessageContent,
+            });
+        }
       });
-    if (assistantMessageError) throw assistantMessageError;
 
-    return new Response(JSON.stringify({ assistantResponse: assistantMessageContent, chatId: currentChatId }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'X-Accel-Buffering': 'no'
+      }
     });
 
   } catch (error) {
