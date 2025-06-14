@@ -155,8 +155,7 @@ export function useChat() {
     [session]
   );
 
-  // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
-
+  // MAIN MESSAGE SENDING LOGIC -- NO OPTIMISTIC UPDATES!
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -189,11 +188,7 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // REMOVE the optimistic setMessages here!
-      // Previously, something like:
-      // setMessages((prev) => [...prev, { ... }]);
-      // Instead, just send the message, and let realtime sync show it when it is inserted.
-
+      // Absolutely NO setMessages or local message mutation here or in sendMessageStreaming.
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -202,7 +197,7 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        setMessages, // Still pass this, as sendMessageStreaming might want to update messages after stream is done.
+        // REMOVE setMessages, all message logic solely via realtime now
         setIsLoading,
         attachedFiles: attachedFiles || [],
       });
@@ -211,8 +206,6 @@ export function useChat() {
   );
 
   // Helper for redoing after edit - NO LONGER NEEDED for UI edit flow!
-  // Kept for API compatibility, but should now be avoided for in-UI flow
-
   const redoAfterEdit = useCallback(
     async ({
       msgId,
