@@ -15,6 +15,7 @@ interface ChatMessageProps {
     reasoning?: string;
     created_at?: string;
     attachedFiles?: UploadedFile[];
+    chat_id?: string;
   };
 }
 
@@ -49,10 +50,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   const handleRetry = async (modelId: string) => {
     console.log("handleRetry called", { modelId, msg, currentChatId });
     await deleteMessagesAfter(msg.id);
-    // Wait for messages/state to update, then get the up-to-date chatId
-    // NOTE: deleteMessagesAfter is synchronous wrt chatId in this design, but to ensure we get latest, pass it directly
-    // currentChatId is context state and should still be set
-    await handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content, currentChatId);
+    // Instead of using currentChatId (which may be null), use msg.chat_id if available
+    await handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content, msg.chat_id);
   };
 
   // Handle Edit: Set input to this message, delete all after (by message id)

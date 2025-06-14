@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -16,6 +17,7 @@ export interface Message {
   created_at?: string;
   reasoning?: string;
   attachedFiles?: UploadedFile[]; // UI usage
+  chat_id?: string; // <------ Add this line
 }
 
 export const MODEL_LIST = [
@@ -63,7 +65,7 @@ export function useChat() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('messages')
-      .select('id, role, content, created_at, attachments')
+      .select('id, role, content, created_at, attachments, chat_id') // <-- Include chat_id
       .eq('chat_id', chatId)
       .order('created_at', { ascending: true });
 
@@ -72,7 +74,12 @@ export function useChat() {
       setMessages([]);
     } else {
       setMessages(
-        (data ?? []).map(parseAssistantMessage)
+        (data ?? []).map((raw) => {
+          // parseAssistantMessage may need to propagate chat_id now
+          // If it does not, we add it here:
+          const parsed = parseAssistantMessage(raw);
+          return { ...parsed, chat_id: raw.chat_id };
+        })
       );
     }
     setIsLoading(false);
