@@ -12,15 +12,53 @@ console.log("OPENROUTER_API_KEY present?:", !!openRouterApiKey);
 console.log("SUPABASE_URL present?:", !!supabaseUrl);
 console.log("SUPABASE_SERVICE_ROLE_KEY present?:", !!supabaseServiceRoleKey);
 
+// BEGIN: Allowed models list generated from models.json
 const ALLOWED_MODELS = [
+  "openai/o3-pro",
   "google/gemini-2.5-pro-preview",
-  "openai/o4-mini",
-  "openai/gpt-4.1",
-  "openai/o1-pro",
+  "deepseek/deepseek-r1-distill-qwen-7b",
+  "deepseek/deepseek-r1-0528",
   "anthropic/claude-opus-4",
   "anthropic/claude-sonnet-4",
-  "deepseek/deepseek-r1-0528",
+  "google/gemini-2.5-flash-preview-05-20",
+  "google/gemini-2.5-flash-preview-05-20:thinking",
+  "google/gemini-2.5-pro-preview-05-06",
+  "anthropic/claude-3.7-sonnet",
+  "anthropic/claude-3.7-sonnet:thinking",
+  "openai/gpt-4.1",
+  "openai/gpt-4.1-mini",
+  "openai/gpt-4.1-nano",
+  "meta-llama/llama-3.3-70b-instruct",
+  "google/gemini-2.0-flash-001",
+  "aion-labs/aion-1.0-mini",
+  "qwen/qwen-vl-max",
+  "openai/o3-mini",
+  "deepseek/deepseek-r1-distill-qwen-1.5b",
+  "deepseek/deepseek-r1-distill-qwen-32b",
+  "deepseek/deepseek-r1-distill-qwen-14b",
+  "deepseek/deepseek-r1-distill-llama-70b",
+  "deepseek/deepseek-r1",
+  "deepseek/deepseek-chat-v3-0324",
+  "deepseek/deepseek-chat",
+  "anthropic/claude-3.5-sonnet",
+  "x-ai/grok-3-beta",
+  "x-ai/grok-3-mini-beta",
+  "meta-llama/llama-4-maverick",
+  "meta-llama/llama-4-scout",
+  "qwen/qwq-32b",
+  "openai/gpt-4o-mini",
+  "openai/gpt-4o",
+  "openai/gpt-4.5-preview",
+  "google/gemini-2.0-flash-lite-001",
+  "openai/o4-mini-high",
+  "openai/o3",
+  "openai/o4-mini",
+  "deepseek/deepseek-r1-distill-llama-8b",
+  "anthropic/claude-3.5-sonnet",
+  "anthropic/claude-3-opus",
+  "anthropic/claude-3-sonnet"
 ];
+// END: Allowed models list generated from models.json
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
