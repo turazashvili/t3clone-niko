@@ -126,35 +126,168 @@ export function useChat() {
         return false;
       }
       setIsLoading(true);
+
+      // Find the edited message in state to know where to update
+      const userMsgIdx = messages.findIndex(m => m.id === msgId);
+      if (userMsgIdx === -1) {
+        setIsLoading(false);
+        toast({ title: "Edit error", description: "Message to edit not found.", variant: "destructive" });
+        return false;
+      }
+
+      // Optimistically update the user message's content in UI
+      setMessages(prevMsgs =>
+        prevMsgs.map((msg, i) =>
+          msg.id === msgId ? { ...msg, content: newContent } : msg
+        )
+      );
+
+      // Insert a streaming placeholder for the new assistant reply
+      const assistantReplyId = `edit-assistant-${Date.now()}`;
+      setMessages(prevMsgs => [
+        ...prevMsgs.slice(0, userMsgIdx + 1),
+        {
+          id: assistantReplyId,
+          role: "assistant",
+          content: "",
+          reasoning: "",
+          chat_id: messages[userMsgIdx].chat_id,
+        },
+        // remove all trailing messages for UI (DB will delete as well)
+      ]);
+
       try {
-        const payload: Record<string, any> = { id: msgId, newContent };
-        if (modelOverride) payload.modelOverride = modelOverride;
-        const res = await fetch(
-          "https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify(payload),
-          }
-        );
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          toast({ title: "Failed to edit message", description: data.error || "Unknown error", variant: "destructive" });
+        // Call the new streaming message-edit API (SSE, so use fetch/reader like in sendMessageStreaming)
+        const resp = await fetch("https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            id: msgId,
+            newContent,
+            modelOverride,
+          }),
+        });
+        if (!resp.ok) {
+          let msg = "Unknown error";
+          try {
+            const errObj = await resp.json();
+            msg = errObj?.error || JSON.stringify(errObj);
+          } catch {}
+          toast({ title: "Edit Failed", description: msg, variant: "destructive" });
           setIsLoading(false);
           return false;
         }
+        if (!resp.body) {
+          toast({ title: "Edit Failed", description: "No response body from server.", variant: "destructive" });
+          setIsLoading(false);
+          return false;
+        }
+
+        // Handle SSE streaming
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let streamedContent = "";
+        let streamedReasoning = "";
+        let done = false;
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          if (doneReading) {
+            done = true;
+            continue;
+          }
+          buffer += decoder.decode(value, { stream: true });
+
+          while (true) {
+            const eventEnd = buffer.indexOf("\n\n");
+            if (eventEnd === -1) break;
+            const rawEvent = buffer.slice(0, eventEnd);
+            buffer = buffer.slice(eventEnd + 2);
+
+            let event = "message";
+            let data = "";
+            for (let line of rawEvent.split("\n")) {
+              if (line.startsWith("event:")) event = line.slice(6).trim();
+              else if (line.startsWith("data:")) data += line.slice(5).trim();
+            }
+
+            if (event === "reasoning") {
+              try {
+                const parsed = JSON.parse(data);
+                streamedReasoning = parsed.reasoning || "";
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantReplyId
+                      ? { ...msg, reasoning: streamedReasoning }
+                      : msg
+                  )
+                );
+              } catch { }
+            } else if (event === "content") {
+              try {
+                const parsed = JSON.parse(data);
+                streamedContent += parsed.content || "";
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantReplyId
+                      ? { ...msg, content: streamedContent }
+                      : msg
+                  )
+                );
+              } catch { }
+            } else if (event === "done") {
+              try {
+                // On done, force a DB fetch for all messages for this chat
+                const chatToFetch = messages[userMsgIdx].chat_id;
+                if (chatToFetch) {
+                  const { data, error } = await supabase
+                    .from('messages')
+                    .select('id, role, content, created_at, attachments, reasoning, chat_id')
+                    .eq('chat_id', chatToFetch)
+                    .order('created_at', { ascending: true });
+                  if (!error && data) {
+                    setMessages(
+                      data.map((raw) => ({
+                        ...raw,
+                        attachedFiles: (raw.attachments && Array.isArray(raw.attachments))
+                          ? raw.attachments.map((f: any) => ({
+                            name: f.name,
+                            type: f.type,
+                            url: f.url,
+                            originalFile: undefined,
+                          })) : [],
+                      }))
+                    );
+                  }
+                }
+              } catch { }
+              done = true;
+            } else if (event === "error") {
+              try {
+                const parsed = JSON.parse(data);
+                toast({ title: "Edit Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
+                // Remove streaming assistant from UI
+                setMessages((prev) => prev.filter((m) => m.id !== assistantReplyId));
+                done = true;
+              } catch { }
+            }
+          }
+        }
         setIsLoading(false);
         return true;
-      } catch(e: any) {
-        toast({ title: "Failed to edit message", description: e.message, variant: "destructive" });
+      } catch (e: any) {
+        toast({ title: "Edit error", description: e?.message || "Network error", variant: "destructive" });
         setIsLoading(false);
+        // Remove assistant streaming placeholder if present
+        setMessages((prev) => prev.filter((m) => m.id !== assistantReplyId));
         return false;
       }
     },
-    [session]
+    [session, messages]
   );
 
   // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
