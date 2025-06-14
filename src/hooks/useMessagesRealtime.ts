@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Message } from "@/types/chat";
+import { Message } from "./useChat";
 
 /**
  * Listens for Realtime changes to messages in a chat and updates state.
