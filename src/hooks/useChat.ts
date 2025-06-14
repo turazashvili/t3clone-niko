@@ -128,41 +128,32 @@ export function useChat() {
         return false;
       }
       setIsLoading(true);
-      let assistantMsgId = Date.now().toString() + "_assistantEdit";
+      const assistantMsgId = Date.now().toString() + "_assistantEdit";
       let streamedContent = "";
       let streamedReasoning = "";
 
-      // Find/prepare UI placeholder
-      const editingTargetMsgIndex = messages.findIndex(
-        (m, i) =>
-          m.id === msgId &&
-          messages[i + 1] &&
-          messages[i + 1].role === "assistant"
-      );
-      const origAssistant = editingTargetMsgIndex !== -1 ? messages[editingTargetMsgIndex + 1] : null;
-
-      setMessages((prev) => {
-        if (origAssistant) {
+      // Find the target user message index and the following assistant message if any
+      setMessages(prev => {
+        const userIdx = prev.findIndex(m => m.id === msgId);
+        if (userIdx === -1) return prev;
+        const hasAssistant = prev[userIdx + 1]?.role === "assistant";
+        if (hasAssistant) {
+          // Blank out the content for streaming
           return prev.map((msg, idx) =>
-            idx === editingTargetMsgIndex + 1
+            idx === userIdx + 1
               ? { ...msg, content: "", reasoning: "" }
               : msg
           );
         } else {
-          // Add placeholder if no assistant after
-          const i = prev.findIndex(m => m.id === msgId);
-          if (i !== -1) {
-            const cp = [...prev];
-            cp.splice(i + 1, 0, {
-              id: assistantMsgId,
-              role: "assistant",
-              content: "",
-              reasoning: "",
-            });
-            return cp;
-          }
+          const cp = [...prev];
+          cp.splice(userIdx + 1, 0, {
+            id: assistantMsgId,
+            role: "assistant",
+            content: "",
+            reasoning: "",
+          });
+          return cp;
         }
-        return prev;
       });
 
       try {
@@ -203,19 +194,21 @@ export function useChat() {
           onReasoning: (chunk) => {
             streamedReasoning = chunk;
             setMessages(prev => {
-              // Update the UI assistant placeholder
-              const idx = prev.findIndex((m, i) =>
-                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-              );
-              if (idx !== -1 && prev[idx + 1]) {
-                return prev.map((msg, i2) =>
-                  i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
+              // Always use the functional updater for streaming
+              // Find assistant placeholder after the edited user message or that we just inserted
+              const userIdx = prev.findIndex(m => m.id === msgId);
+              // Could be the _assistantEdit or a real assistant message
+              const hasAssistant = userIdx !== -1 && prev[userIdx + 1]?.role === "assistant";
+              if (hasAssistant) {
+                return prev.map((msg, idx) =>
+                  idx === userIdx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
                 );
               }
-              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+              // fallback: look for placeholder id we created
+              const aIdx = prev.findIndex(m => m.id === assistantMsgId);
               if (aIdx !== -1) {
-                return prev.map((msg, i2) =>
-                  i2 === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
+                return prev.map((msg, idx) =>
+                  idx === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
                 );
               }
               return prev;
@@ -224,25 +217,24 @@ export function useChat() {
           onContent: (chunk) => {
             streamedContent += chunk;
             setMessages(prev => {
-              const idx = prev.findIndex((m, i) =>
-                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-              );
-              if (idx !== -1 && prev[idx + 1]) {
-                return prev.map((msg, i2) =>
-                  i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
+              const userIdx = prev.findIndex(m => m.id === msgId);
+              const hasAssistant = userIdx !== -1 && prev[userIdx + 1]?.role === "assistant";
+              if (hasAssistant) {
+                return prev.map((msg, idx) =>
+                  idx === userIdx + 1 ? { ...msg, content: streamedContent } : msg
                 );
               }
-              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+              const aIdx = prev.findIndex(m => m.id === assistantMsgId);
               if (aIdx !== -1) {
-                return prev.map((msg, i2) =>
-                  i2 === aIdx ? { ...msg, content: streamedContent } : msg
+                return prev.map((msg, idx) =>
+                  idx === aIdx ? { ...msg, content: streamedContent } : msg
                 );
               }
               return prev;
             });
           },
           onDone: async ({ content, reasoning }) => {
-            // Refetch the full chat for consistency
+            // Fetch all updated messages from DB for consistency
             const iMsg = messages.find((m) => m.id === msgId);
             const chatIdToFetch = iMsg?.chat_id || currentChatId;
             if (chatIdToFetch) {
@@ -251,6 +243,7 @@ export function useChat() {
                 .select("id, role, content, created_at, attachments, reasoning, chat_id")
                 .eq("chat_id", chatIdToFetch)
                 .order("created_at", { ascending: true });
+
               if (error) {
                 toast({
                   title: "Error fetching messages",
@@ -269,14 +262,13 @@ export function useChat() {
               description: formatToastError(e),
               variant: "destructive",
             });
-            // Remove blanked assistant message if present
+            // Clean up any blanked assistant placeholders (whether id-based or after user message)
             setMessages(prev => {
-              const idx = prev.findIndex((m, i) =>
-                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-              );
-              if (idx !== -1 && prev[idx + 1]) {
+              const userIdx = prev.findIndex(m => m.id === msgId);
+              const hasAssistant = userIdx !== -1 && prev[userIdx + 1]?.role === "assistant";
+              if (hasAssistant) {
                 const cp = [...prev];
-                cp.splice(idx + 1, 1);
+                cp.splice(userIdx + 1, 1);
                 return cp;
               }
               return prev.filter(m => m.id !== assistantMsgId);
@@ -292,9 +284,7 @@ export function useChat() {
           variant: "destructive",
         });
         setIsLoading(false);
-        setMessages((prev) =>
-          prev.filter((m) => m.id !== assistantMsgId)
-        );
+        setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
         return false;
       }
     },
