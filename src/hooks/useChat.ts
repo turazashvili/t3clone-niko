@@ -368,14 +368,27 @@ export function useChat() {
         setMessages,
         setIsLoading,
         attachedFiles: attachedFiles || [],
-        // --- Refresh sidebar after the first message syncs to DB ---
+        // --- REFRESH SIDEBAR AFTER THE FIRST MESSAGE IS SYNCED TO DB ---
         onFirstMessageDone: () => {
-          setSidebarRefreshKey(Date.now()); // Local update for legacy code paths/UI
-          triggerSidebarRefresh();          // Full sync for new sidebar system
+          setSidebarRefreshKey(Date.now());
+          // Add this line below to always refresh the sidebar!
+          if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
       });
     },
-    [inputValue, user, currentChatId, selectedModel, webSearchEnabled, triggerSidebarRefresh]
+    [
+      inputValue,
+      user,
+      currentChatId,
+      selectedModel,
+      webSearchEnabled,
+      triggerSidebarRefresh,
+      setSidebarRefreshKey,
+      setInputValue,
+      setIsLoading,
+      setCurrentChatId,
+      setMessages
+    ]
   );
 
   // Helper for redoing after edit - NO LONGER NEEDED for UI edit flow!
