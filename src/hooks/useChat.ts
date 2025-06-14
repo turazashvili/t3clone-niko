@@ -155,14 +155,15 @@ export function useChat() {
     [session]
   );
 
-  // MAIN MESSAGE SENDING LOGIC -- NO OPTIMISTIC UPDATES!
+  // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
+
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
       webSearch?: boolean,
       attachedFiles?: UploadedFile[],
       inputOverride?: string,
-      chatIdOverride?: string
+      chatIdOverride?: string // <-- NEW PARAM
     ) => {
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
       console.log("handleSendMessage called", {
@@ -188,7 +189,11 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // NO optimistic local setMessages or mutation here.
+      // REMOVE the optimistic setMessages here!
+      // Previously, something like:
+      // setMessages((prev) => [...prev, { ... }]);
+      // Instead, just send the message, and let realtime sync show it when it is inserted.
+
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -197,6 +202,7 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
+        setMessages, // Still pass this, as sendMessageStreaming might want to update messages after stream is done.
         setIsLoading,
         attachedFiles: attachedFiles || [],
       });
@@ -205,6 +211,8 @@ export function useChat() {
   );
 
   // Helper for redoing after edit - NO LONGER NEEDED for UI edit flow!
+  // Kept for API compatibility, but should now be avoided for in-UI flow
+
   const redoAfterEdit = useCallback(
     async ({
       msgId,

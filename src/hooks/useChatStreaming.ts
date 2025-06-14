@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UploadedFile } from "@/hooks/useFileUpload";
@@ -37,10 +36,9 @@ export async function sendMessageStreaming({
   webSearchEnabled,
   setCurrentChatId,
   setSidebarRefreshKey,
+  setMessages,
   setIsLoading,
   attachedFiles = [],
-  // setMessages is now optional and should NOT be used for inserting/removing user/assistant messages!
-  setMessages,
 }: {
   inputValue: string,
   user: any,
@@ -49,25 +47,48 @@ export async function sendMessageStreaming({
   webSearchEnabled: boolean,
   setCurrentChatId: (id: string) => void,
   setSidebarRefreshKey: (key: number) => void,
+  setMessages: (fn: (prev: Message[]) => Message[]) => void,
   setIsLoading: (is: boolean) => void,
-  attachedFiles?: UploadedFile[],
-  setMessages?: (fn: (prev: Message[]) => Message[]) => void, // <-- now optional
+  attachedFiles?: UploadedFile[]
 }) {
-  // REMOVE ALL OPTIMISTIC UPDATES! No UI update, solely backend-driven.
-  // const userMessage: Message = { ... };
-  // No local setMessages here
+  // Prepare local user message
+  const userMessage: Message = {
+    id: Date.now().toString(),
+    role: "user",
+    content: inputValue,
+    attachedFiles,
+  };
 
+  // Optimistically add user message in UI only (NOT in DB)
+  setMessages((prevMessages) => [...prevMessages, userMessage]);
   setIsLoading(true);
 
+  let assistantMsgId = Date.now().toString() + "_assistant";
+  let streamedContent = "";
+  let streamedReasoning = "";
   let streamingNewChatId: string | null = null;
 
+  // Add placeholder assistant message
+  setMessages((prevMessages) => [
+    ...prevMessages,
+    {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      reasoning: "",
+    },
+  ]);
+
   try {
+    // Do NOT insert the user message in DB here!
+    // Let edge function handle creation/writing to DB
+
     const response = await fetch(CHAT_HANDLER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chatId: currentChatId,
-        userMessageContent: inputValue,
+        userMessageContent: userMessage.content,
         userId: user.id,
         model: selectedModel,
         webSearchEnabled,
@@ -109,14 +130,78 @@ export async function sendMessageStreaming({
             setCurrentChatId(data);
             setSidebarRefreshKey(Date.now());
           }
-        } 
-        // NO other event should cause a setMessages mutation!
-        // "reasoning", "content", "done", "error" -- all handled server-side and updated in DB, so frontend will get it via Realtime!
+        } else if (event === "reasoning") {
+          try {
+            const parsed = JSON.parse(data);
+            streamedReasoning = parsed.reasoning || "";
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? { ...msg, reasoning: streamedReasoning }
+                  : msg
+              )
+            );
+          } catch {}
+        } else if (event === "content") {
+          try {
+            const parsed = JSON.parse(data);
+            streamedContent += parsed.content || "";
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? { ...msg, content: streamedContent }
+                  : msg
+              )
+            );
+          } catch {}
+        } else if (event === "done") {
+          try {
+            const parsed = JSON.parse(data);
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId
+                  ? {
+                      ...msg,
+                      content: parsed.content,
+                      reasoning: parsed.reasoning,
+                    }
+                  : msg
+              )
+            );
+
+            // Always refetch from DB and replace ALL messages to prevent mismatch/duplicates
+            const chatToFetch = streamingNewChatId || currentChatId;
+            if (chatToFetch) {
+              const fetchData = await supabase
+                .from('messages')
+                .select('id, role, content, created_at, attachments')
+                .eq('chat_id', chatToFetch)
+                .order('created_at', { ascending: true });
+
+              if (fetchData.error) {
+                toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
+              } else {
+                setMessages(() => 
+                  (fetchData.data ?? []).map(parseAssistantMessage)
+                );
+              }
+            }
+          } catch {}
+          done = true;
+        } else if (event === "error") {
+          try {
+            const parsed = JSON.parse(data);
+            toast({ title: "Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
+            setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
+            done = true;
+          } catch {}
+        }
       }
     }
   } catch (err: any) {
     toast({ title: "Error sending message", description: err?.message || "Could not connect to chat service.", variant: "destructive" });
-    // No optimistic deletions
+    // Remove optimistic messages (user and assistant)
+    setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== assistantMsgId));
   } finally {
     setIsLoading(false);
   }
