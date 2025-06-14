@@ -4,6 +4,7 @@ import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIco
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import ReactMarkdown from "react-markdown";
 import { UploadedFile } from "@/hooks/useFileUpload";
+import AttachmentViewerDialog from "./AttachmentViewerDialog";
 
 interface ChatMessageProps {
   msg: {
@@ -20,6 +21,18 @@ const isImageType = (fileType: string) => fileType.startsWith("image/");
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   const [reasonOpen, setReasonOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
+
+  const handleAttachmentClick = (file: UploadedFile) => {
+    setSelectedFile(file);
+    setViewerOpen(true);
+  };
+
+  const handleCloseViewer = () => {
+    setViewerOpen(false);
+    setSelectedFile(null);
+  };
 
   return (
     <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -57,7 +70,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               {msg.attachedFiles.map((file, idx) => (
                 <div key={idx} className="flex flex-col items-center">
                   {isImageType(file.type) ? (
-                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="block group">
+                    <button
+                      type="button"
+                      onClick={() => handleAttachmentClick(file)}
+                      className="block group bg-transparent border-none outline-none p-0"
+                      tabIndex={0}
+                    >
                       <img
                         src={file.url}
                         alt={file.name}
@@ -67,17 +85,17 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                         <ImageIcon size={14} className="inline-block mr-1 align-text-bottom" />
                         {file.name}
                       </div>
-                    </a>
+                    </button>
                   ) : (
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => handleAttachmentClick(file)}
                       className="flex items-center gap-1 text-xs text-blue-200 hover:underline px-2 py-1 rounded bg-white/10"
+                      tabIndex={0}
                     >
                       <FileIcon size={14} />
                       {file.name}
-                    </a>
+                    </button>
                   )}
                 </div>
               ))}
@@ -85,6 +103,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
           )}
         </div>
         {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}
+        {/* Attachment Viewer Dialog (modal, one per ChatMessage instance) */}
+        <AttachmentViewerDialog open={viewerOpen} file={selectedFile} onClose={handleCloseViewer} />
       </div>
     </div>
   );
