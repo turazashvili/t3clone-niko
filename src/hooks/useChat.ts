@@ -76,14 +76,16 @@ export function useChat() {
       toast({ title: "Error fetching messages", description: error.message, variant: "destructive" });
       setMessages([]);
     } else {
-      // On successful fetch: wipe and replace with only the DB messages (no leftover optimistic messages)
       setMessages(
-        (data ?? []).map((raw) => {
-          // parseAssistantMessage may need to propagate chat_id now
-          // If it does not, we add it here:
-          const parsed = parseAssistantMessage(raw);
-          return { ...parsed, chat_id: raw.chat_id };
-        })
+        (data ?? [])
+          .map((raw) => {
+            // Ensure only "user" or "assistant" role is used (fallback to "assistant")
+            const role: "user" | "assistant" =
+              raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
+            // parseAssistantMessage may need to propagate chat_id now
+            const parsed = parseAssistantMessage(raw);
+            return { ...parsed, chat_id: raw.chat_id, role };
+          })
       );
     }
     setIsLoading(false);
