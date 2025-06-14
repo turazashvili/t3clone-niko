@@ -12,6 +12,9 @@ const ChatArea = ({ messages, isLoading }: { messages: any[], isLoading: boolean
     editMessage,
   } = useChat();
 
+  // Debug: Log messages every render
+  console.log("[ChatArea render] messages:", messages);
+
   return (
     <div className="flex flex-col gap-2 px-2 py-6">
       {messages.map((msg) => (

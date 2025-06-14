@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "./useChat";
@@ -18,33 +19,39 @@ export function useMessagesRealtime(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
         (payload) => {
+          // Debug: Log realtime payload and setMessages
+          console.log("[useMessagesRealtime] Got event:", payload);
           setMessages((messages) => {
+            // Debug: current state and payload
+            console.log("[useMessagesRealtime] setMessages, before:", messages);
             if (payload.eventType === "INSERT") {
-              // If the message doesn't exist, add to messages.
               if (!messages.some(m => m.id === payload.new.id)) {
-                return [
+                const out = [
                   ...messages,
-                  payload.new as Message, // safely cast
+                  payload.new as Message,
                 ].sort(
                   (a, b) =>
                     new Date(a.created_at || "").getTime() -
                     new Date(b.created_at || "").getTime()
                 );
+                console.log("[useMessagesRealtime] setMessages, after INSERT:", out);
+                return out;
               }
               return messages;
             }
             if (payload.eventType === "UPDATE") {
-              // Replace the message with updated one.
-              return messages.map(m =>
+              const out = messages.map(m =>
                 m.id === payload.new.id
                   ? { ...m, ...(payload.new as Message) }
                   : m
               );
+              console.log("[useMessagesRealtime] setMessages, after UPDATE:", out);
+              return out;
             }
             if (payload.eventType === "DELETE") {
-              // Instead of blindly filtering by ID, remove all local messages that do not exist in the DB after deletes.
-              // But since we don't have full state, fallback to by ID as before.
-              return messages.filter(m => m.id !== payload.old.id);
+              const out = messages.filter(m => m.id !== payload.old.id);
+              console.log("[useMessagesRealtime] setMessages, after DELETE:", out);
+              return out;
             }
             return messages;
           });
@@ -57,3 +64,4 @@ export function useMessagesRealtime(
     };
   }, [chatId, setMessages]);
 }
+

@@ -71,6 +71,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
 
+  // Defensive: Editing should be possible only if messages are loaded
+  const editDisabled = messages.length === 0;
+
   // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
     console.log("handleRetry called", { modelId, msg, currentChatId });
@@ -310,8 +313,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 messageContent={msg.content}
                 onRetry={handleRetry}
                 currentModel={selectedModel}
-                onEdit={handleEditClick}
+                onEdit={editDisabled ? undefined : handleEditClick}
               />
+              {editDisabled && (
+                <div className="text-xs text-yellow-300 mt-1 px-2">
+                  Editing disabled (message list not loaded yet)
+                </div>
+              )}
             </div>
           )}
           {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}
