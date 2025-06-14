@@ -3,6 +3,7 @@ import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-reac
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Chat {
   id: string;
@@ -31,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRecentChats = async () => {
@@ -73,6 +75,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       supabase.removeChannel(channel);
     };
   }, [userId, triggerRefresh]);
+
+  const handleChatClick = (chatId: string) => {
+    navigate(`/chat/${chatId}`);
+    onLoadChat?.(chatId); // For any extra logic needed (e.g., state sync)
+  };
 
   return (
     <aside
@@ -120,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div
               key={chat.id}
               className="py-2 px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
-              onClick={() => onLoadChat?.(chat.id)}
+              onClick={() => handleChatClick(chat.id)}
             >
               <MessageSquare size={16} className="text-white/60 shrink-0" />
               <span className="truncate flex-1">
