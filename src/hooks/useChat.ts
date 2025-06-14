@@ -14,6 +14,8 @@ export interface Message {
   content: string;
   created_at?: string;
   reasoning?: string;
+  // Attachments now supported at UI level (not in DB rows yet)
+  attachedFiles?: UploadedFile[];
 }
 
 export const MODEL_LIST = [
