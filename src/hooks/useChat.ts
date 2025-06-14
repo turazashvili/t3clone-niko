@@ -30,6 +30,11 @@ export const MODEL_LIST = [
   { label: "DeepSeek R1", value: "deepseek/deepseek-r1-0528" },
 ];
 
+function isUuidV4(id: string): boolean {
+  // Matches UUID v4, e.g., 01234567-89ab-cdef-0123-456789abcdef
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+}
+
 export function useChat() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -77,13 +82,14 @@ export function useChat() {
       setMessages([]);
     } else {
       setMessages(
-        (data ?? []).map((raw) => {
-          // Ensure only "user" or "assistant" role is used (fallback to "assistant")
-          const role: "user" | "assistant" =
-            raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
-          const parsed = parseAssistantMessage(raw);
-          return { ...parsed, chat_id: raw.chat_id, role };
-        })
+        (data ?? [])
+          .map((raw) => {
+            const role: "user" | "assistant" =
+              raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
+            const parsed = parseAssistantMessage(raw);
+            return { ...parsed, chat_id: raw.chat_id, role };
+          })
+          .filter((msg) => isUuidV4(msg.id)) // Only keep real DB messages (ignore optimistic)
       );
     }
     setIsLoading(false);
