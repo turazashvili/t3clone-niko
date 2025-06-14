@@ -124,7 +124,7 @@ export function useChat() {
       setIsLoading(true);
       try {
         const res = await fetch(
-          "/functions/v1/message-edit",
+          "https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit",
           {
             method: "POST",
             headers: {
