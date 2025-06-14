@@ -218,17 +218,30 @@ const Index = () => {
                     : msg
                 )
               );
-              // PATCH: Only fetchChatMessages if this is not the "first message, new chat"
-              // If chatId was previously null (just created), do NOT refresh messages (would likely be empty)
-              // Only update sidebar/listing as above.
+
+              // PATCH: Always merge and never clear local messages on fetch, so messages won't disappear
               if (!currentChatId && streamingNewChatId) {
-                // Only refresh sidebar, do NOT fetchChatMessages here!
                 setCurrentChatId(streamingNewChatId);
                 setSidebarRefreshKey(Date.now());
-                // (Remove/skip fetchChatMessages(streamingNewChatId);)
+                // Do NOT call fetchChatMessages here -- trust streamed messages!
+                // Optionally, you could queue a fetch in 2-3 seconds for background consistency
               } else if (currentChatId) {
-                // For subsequent messages, ensure up-to-date list
-                await fetchChatMessages(currentChatId);
+                // For existing chats, fetch – but do not replace messages if fetch returns empty!
+                const fetchData = await supabase
+                  .from('messages')
+                  .select('id, role, content, created_at')
+                  .eq('chat_id', currentChatId)
+                  .order('created_at', { ascending: true });
+
+                if (fetchData.error) {
+                  toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
+                  // Do NOT clear messages
+                } else if ((fetchData.data ?? []).length > 0) {
+                  setMessages(
+                    fetchData.data.map(parseAssistantMessage)
+                  );
+                }
+                // If fetchData.data is empty, don't clear/overwrite existing messages!
               }
             } catch {}
             done = true;
