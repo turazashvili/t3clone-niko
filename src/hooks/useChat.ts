@@ -7,6 +7,7 @@ import { LLMModel } from "@/types/llm-model";
 import { UploadedFile } from "@/hooks/useFileUpload";
 import { sendMessageStreaming, parseAssistantMessage } from "./useChatStreaming";
 import { useMessagesRealtime } from "./useMessagesRealtime";
+import { processMessageStream } from "./useMessageStreamer";
 
 export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -127,13 +128,11 @@ export function useChat() {
       }
       setIsLoading(true);
       let assistantMsgId = Date.now().toString() + "_assistantEdit";
-      let streamedContent = ""; // For partial content
+      let streamedContent = "";
       let streamedReasoning = "";
-      let assistantMsgInserted = false;
-      let editingTargetMsgIndex = -1;
 
-      // Find the last assistant message right after the edited user message (if exists)
-      editingTargetMsgIndex = messages.findIndex(
+      // Find/prepare UI placeholder
+      const editingTargetMsgIndex = messages.findIndex(
         (m, i) =>
           m.id === msgId &&
           messages[i + 1] &&
@@ -141,7 +140,6 @@ export function useChat() {
       );
       const origAssistant = editingTargetMsgIndex !== -1 ? messages[editingTargetMsgIndex + 1] : null;
 
-      // Optimistically show assistant response regenerating (if existing, blank it; else add blank)
       setMessages((prev) => {
         if (origAssistant) {
           return prev.map((msg, idx) =>
@@ -150,7 +148,7 @@ export function useChat() {
               : msg
           );
         } else {
-          // If there was no assistant after, optimistically add new placeholder
+          // Add placeholder if no assistant after
           const i = prev.findIndex(m => m.id === msgId);
           if (i !== -1) {
             const cp = [...prev];
@@ -180,6 +178,7 @@ export function useChat() {
             body: JSON.stringify(payload),
           }
         );
+
         if (!res.ok || !res.body) {
           let errJson, errText;
           try {
@@ -196,140 +195,93 @@ export function useChat() {
           return false;
         }
 
-        // --- CRUCIAL: Stream in real time and update React state per chunk ---
         const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let done = false;
 
-        while (!done) {
-          // Read next chunk
-          const { value, done: doneReading } = await reader.read();
-          if (doneReading) {
-            done = true;
-            break;
-          }
-          buffer += decoder.decode(value, { stream: true });
-
-          // Handle all complete SSE events in buffer
-          let eventMatch;
-          while ((eventMatch = buffer.match(/^((?:[^\n]*\n)+)\n?/m))) {
-            const rawEvent = eventMatch[1];
-            buffer = buffer.slice(rawEvent.length);
-
-            let event = "message";
-            let data = "";
-            for (let line of rawEvent.split("\n")) {
-              if (line.startsWith("event:")) event = line.slice(6).trim();
-              else if (line.startsWith("data:")) data += line.slice(5).trim();
-            }
-
-            if (event === "reasoning") {
-              try {
-                const parsed = JSON.parse(data);
-                streamedReasoning = parsed.reasoning || "";
-                setMessages(prev => {
-                  // Find assistant message after msgId
-                  const idx = prev.findIndex(
-                    (m, i) =>
-                      m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-                  );
-                  if (idx !== -1 && prev[idx + 1]) {
-                    // Update
-                    const updated = prev.map((msg, i2) =>
-                      i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
-                    );
-                    return updated;
-                  }
-                  // If placeholder not inserted yet, try to find by our generated id
-                  const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
-                  if (aIdx !== -1) {
-                    return prev.map((msg, i2) =>
-                      i2 === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
-                    );
-                  }
-                  return prev;
-                });
-              } catch {}
-            } else if (event === "content") {
-              try {
-                const parsed = JSON.parse(data);
-                streamedContent += parsed.content || "";
-                setMessages(prev => {
-                  // Find assistant message after msgId
-                  const idx = prev.findIndex(
-                    (m, i) =>
-                      m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-                  );
-                  if (idx !== -1 && prev[idx + 1]) {
-                    // Update
-                    const updated = prev.map((msg, i2) =>
-                      i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
-                    );
-                    return updated;
-                  }
-                  // If placeholder not inserted yet, try to find by our generated id
-                  const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
-                  if (aIdx !== -1) {
-                    return prev.map((msg, i2) =>
-                      i2 === aIdx ? { ...msg, content: streamedContent } : msg
-                    );
-                  }
-                  return prev;
-                });
-              } catch {}
-            } else if (event === "done") {
-              try {
-                // On 'done' event: refetch all chat messages for consistency
-                const iMsg = messages.find((m) => m.id === msgId);
-                const chatIdToFetch = iMsg?.chat_id || currentChatId;
-                if (chatIdToFetch) {
-                  const { data, error } = await supabase
-                    .from("messages")
-                    .select("id, role, content, created_at, attachments, reasoning, chat_id")
-                    .eq("chat_id", chatIdToFetch)
-                    .order("created_at", { ascending: true });
-                  if (error) {
-                    toast({
-                      title: "Error fetching messages",
-                      description: error.message,
-                      variant: "destructive",
-                    });
-                  } else {
-                    setMessages(() => (data ?? []).map(parseAssistantMessage));
-                  }
-                }
-              } catch {}
-              done = true;
-              break;
-            } else if (event === "error") {
-              try {
-                const parsed = JSON.parse(data);
+        await processMessageStream(reader, {
+          onReasoning: (chunk) => {
+            streamedReasoning = chunk;
+            setMessages(prev => {
+              // Update the UI assistant placeholder
+              const idx = prev.findIndex((m, i) =>
+                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+              );
+              if (idx !== -1 && prev[idx + 1]) {
+                return prev.map((msg, i2) =>
+                  i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
+                );
+              }
+              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+              if (aIdx !== -1) {
+                return prev.map((msg, i2) =>
+                  i2 === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
+                );
+              }
+              return prev;
+            });
+          },
+          onContent: (chunk) => {
+            streamedContent += chunk;
+            setMessages(prev => {
+              const idx = prev.findIndex((m, i) =>
+                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+              );
+              if (idx !== -1 && prev[idx + 1]) {
+                return prev.map((msg, i2) =>
+                  i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
+                );
+              }
+              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+              if (aIdx !== -1) {
+                return prev.map((msg, i2) =>
+                  i2 === aIdx ? { ...msg, content: streamedContent } : msg
+                );
+              }
+              return prev;
+            });
+          },
+          onDone: async ({ content, reasoning }) => {
+            // Refetch the full chat for consistency
+            const iMsg = messages.find((m) => m.id === msgId);
+            const chatIdToFetch = iMsg?.chat_id || currentChatId;
+            if (chatIdToFetch) {
+              const { data, error } = await supabase
+                .from("messages")
+                .select("id, role, content, created_at, attachments, reasoning, chat_id")
+                .eq("chat_id", chatIdToFetch)
+                .order("created_at", { ascending: true });
+              if (error) {
                 toast({
-                  title: "Error editing message",
-                  description: parsed.error || "Unknown error from server",
+                  title: "Error fetching messages",
+                  description: error.message,
                   variant: "destructive",
                 });
-                // Remove blanked assistant message if present
-                setMessages(prev => {
-                  const idx = prev.findIndex((m, i) =>
-                    m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-                  );
-                  if (idx !== -1 && prev[idx + 1]) {
-                    // Remove assistant message after
-                    const cp = [...prev];
-                    cp.splice(idx + 1, 1);
-                    return cp;
-                  }
-                  return prev.filter(m => m.id !== assistantMsgId);
-                });
-                done = true;
-                break;
-              } catch {}
+              } else {
+                setMessages(() => (data ?? []).map(parseAssistantMessage));
+              }
             }
+            setIsLoading(false);
+          },
+          onError: (err) => {
+            toast({
+              title: "Error editing message",
+              description: err || "Unknown error from server",
+              variant: "destructive",
+            });
+            // Remove blanked assistant message if present
+            setMessages(prev => {
+              const idx = prev.findIndex((m, i) =>
+                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+              );
+              if (idx !== -1 && prev[idx + 1]) {
+                const cp = [...prev];
+                cp.splice(idx + 1, 1);
+                return cp;
+              }
+              return prev.filter(m => m.id !== assistantMsgId);
+            });
+            setIsLoading(false);
           }
-        }
-        setIsLoading(false);
+        });
         return true;
       } catch (e: any) {
         toast({
@@ -338,7 +290,6 @@ export function useChat() {
           variant: "destructive",
         });
         setIsLoading(false);
-        // On error, remove blank/optimistic assistant reply if present
         setMessages((prev) =>
           prev.filter((m) => m.id !== assistantMsgId)
         );
