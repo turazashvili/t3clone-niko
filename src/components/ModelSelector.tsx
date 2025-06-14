@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import modelsJson from "@/data/models.json";
 import { Eye, FileText, ImageIcon, File as LucideFile, Lock, ChevronDown } from "lucide-react";
@@ -63,7 +62,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, setSelecte
           <ChevronDown className="ml-2 w-5 h-5 text-blue-200" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#33274c] rounded-2xl shadow-xl z-50">
+      <PopoverContent align="start" className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#33274c] rounded-2xl shadow-xl z-50 max-h-[400px] overflow-y-auto">
         <div className="p-3 border-b border-[#33274c]">
           <input
             type="text"
