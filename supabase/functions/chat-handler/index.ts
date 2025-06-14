@@ -33,7 +33,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { chatId, userMessageContent, userId, model, webSearchEnabled } = await req.json();
+    const { chatId, userMessageContent, userId, model, webSearchEnabled, attachedFiles } = await req.json();
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
@@ -103,7 +103,35 @@ serve(async (req: Request) => {
       });
     if (userMessageError) throw userMessageError;
 
-    conversationHistory.push({ role: 'user', content: userMessageContent });
+    // Add to conversation history
+    let messageContent: any[] = [{ type: "text", text: userMessageContent }];
+    if (attachedFiles && Array.isArray(attachedFiles)) {
+      for (const f of attachedFiles) {
+        if (f.type.startsWith("image/")) {
+          messageContent.push({
+            type: "image_url",
+            image_url: { url: f.url },
+          });
+        } else if (f.type === "application/pdf") {
+          // Fetch, encode to base64 data URL
+          try {
+            const fileRes = await fetch(f.url);
+            const fileBuf = new Uint8Array(await fileRes.arrayBuffer());
+            const base64 = btoa(String.fromCharCode(...fileBuf));
+            messageContent.push({
+              type: "file",
+              file: {
+                filename: f.name,
+                file_data: `data:application/pdf;base64,${base64}`,
+              },
+            });
+          } catch (e) {
+            console.error("Failed to fetch/encode PDF:", f.url, e);
+          }
+        }
+      }
+    }
+    conversationHistory.push({ role: "user", content: messageContent });
 
     // Prepare OpenRouter API streaming call
     let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
@@ -120,6 +148,16 @@ serve(async (req: Request) => {
       if (typeof modelToUse === "string" && !modelToUse.endsWith(":online")) {
         body.model = modelToUse + ":online";
       }
+    }
+
+    // Plugins for PDFs if any
+    if (messageContent.some((x: any) => x.type === "file")) {
+      body.plugins = [
+        {
+          id: "file-parser",
+          pdf: { engine: "pdf-text" },
+        },
+      ];
     }
 
     // Start streaming from OpenRouter, proxying each chunk to the client as SSE in real-time.

@@ -7,6 +7,7 @@ import EmptyState from "./EmptyState";
 import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
+import { UploadedFile } from "@/hooks/useFileUpload";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
@@ -31,6 +32,16 @@ const Index = () => {
     loadChat,
     handleSignOut,
   } = useChat();
+
+  // NEW STATE FOR ATTACHMENTS
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
+
+  // Enhanced handleSend to support attachments
+  const handleSend = (model: string, webSearchEnabled: boolean) => {
+    // pass attachedFiles to useChat, then clear
+    handleSendMessage(model, webSearchEnabled, attachedFiles);
+    setAttachedFiles([]);
+  };
 
   return (
     <div className="relative min-h-screen w-full bg-transparent">
@@ -64,7 +75,7 @@ const Index = () => {
             <ChatInputBar
               inputValue={inputValue}
               setInputValue={setInputValue}
-              onSend={handleSendMessage}
+              onSend={handleSend}
               isLoading={isLoading}
               disabled={!user}
               user={user}
@@ -72,6 +83,8 @@ const Index = () => {
               setSelectedModel={setSelectedModel}
               webSearchEnabled={webSearchEnabled}
               setWebSearchEnabled={setWebSearchEnabled}
+              attachedFiles={attachedFiles}
+              setAttachedFiles={setAttachedFiles}
             />
             <FooterNotice />
           </div>

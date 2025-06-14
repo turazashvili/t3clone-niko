@@ -4,6 +4,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
 import modelsJson from "@/data/models.json";
 import { LLMModel } from "@/types/llm-model";
+import { UploadedFile } from "@/hooks/useFileUpload";
 
 export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -92,174 +93,181 @@ export function useChat() {
   }, []);
 
   // Streaming handler
-  const handleSendMessage = useCallback(async (modelOverride?: string, webSearch?: boolean) => {
-    if (!inputValue.trim()) return;
-    if (!user) {
-      toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
-      setLoginOpen(true);
-      return;
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputValue,
-    };
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
-    setInputValue("");
-    setIsLoading(true);
-
-    let assistantMsgId = Date.now().toString() + "_assistant";
-    let streamedContent = "";
-    let streamedReasoning = "";
-    let streamingNewChatId: string | null = null;
-
-    // Add placeholder assistant message
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        id: assistantMsgId,
-        role: "assistant",
-        content: "",
-        reasoning: "",
-      },
-    ]);
-
-    try {
-      const response = await fetch(CHAT_HANDLER_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          userMessageContent: userMessage.content,
-          userId: user.id,
-          model: modelOverride || selectedModel,
-          webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
-        }),
-      });
-
-      if (!response.ok) throw new Error(await response.text());
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let done = false;
-
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        if (doneReading) {
-          done = true;
-          continue;
-        }
-        buffer += decoder.decode(value, { stream: true });
-
-        // process each complete event
-        while (true) {
-          // Find a full SSE event: ends with \n\n
-          const eventEnd = buffer.indexOf("\n\n");
-          if (eventEnd === -1) break;
-          const rawEvent = buffer.slice(0, eventEnd);
-          buffer = buffer.slice(eventEnd + 2);
-
-          // Parse event and data
-          let event = "message";
-          let data = "";
-          for (let line of rawEvent.split("\n")) {
-            if (line.startsWith("event:")) event = line.slice(6).trim();
-            else if (line.startsWith("data:")) data += line.slice(5).trim();
-          }
-          // Handle event types
-          if (event === "chatId" && data) {
-            streamingNewChatId = data;
-            if (!currentChatId) {
-              setCurrentChatId(data);
-              setSidebarRefreshKey(Date.now());
-              // Do NOT fetchChatMessages here
-            }
-          } else if (event === "reasoning") {
-            try {
-              const parsed = JSON.parse(data);
-              streamedReasoning = parsed.reasoning || "";
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, reasoning: streamedReasoning }
-                    : msg
-                )
-              );
-            } catch {}
-          } else if (event === "content") {
-            try {
-              const parsed = JSON.parse(data);
-              streamedContent += parsed.content || "";
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, content: streamedContent }
-                    : msg
-                )
-              );
-            } catch {}
-          } else if (event === "done") {
-            try {
-              const parsed = JSON.parse(data);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? {
-                        ...msg,
-                        content: parsed.content,
-                        reasoning: parsed.reasoning,
-                      }
-                    : msg
-                )
-              );
-
-              if (!currentChatId && streamingNewChatId) {
-                setCurrentChatId(streamingNewChatId);
-                setSidebarRefreshKey(Date.now());
-                // Do NOT call fetchChatMessages here -- trust streamed messages!
-              } else if (currentChatId) {
-                // For existing chats, fetch – but do not replace messages if fetch returns empty!
-                const fetchData = await supabase
-                  .from('messages')
-                  .select('id, role, content, created_at')
-                  .eq('chat_id', currentChatId)
-                  .order('created_at', { ascending: true });
-
-                if (fetchData.error) {
-                  toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
-                  // Do NOT clear messages
-                } else if ((fetchData.data ?? []).length > 0) {
-                  setMessages(
-                    fetchData.data.map(parseAssistantMessage)
-                  );
-                }
-                // If fetchData.data is empty, don't clear/overwrite existing messages!
-              }
-            } catch {}
-            done = true;
-          } else if (event === "error") {
-            try {
-              const parsed = JSON.parse(data);
-              toast({ title: "Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
-              // Remove the streamed assistant message placeholder
-              setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
-              done = true;
-            } catch {}
-          }
-        }
+  const handleSendMessage = useCallback(
+    async (modelOverride?: string, webSearch?: boolean, attachedFiles?: UploadedFile[]) => {
+      if (!inputValue.trim()) return;
+      if (!user) {
+        toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
+        setLoginOpen(true);
+        return;
       }
-    } catch (err: any) {
-      toast({ title: "Error sending message", description: err?.message || "Could not connect to chat service.", variant: "destructive" });
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== assistantMsgId));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [inputValue, user, currentChatId, selectedModel, webSearchEnabled]);
+
+      // Make new user message with optional attachments
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: inputValue,
+        // @ts-ignore: allow attachedFiles passthrough, not in DB yet
+        attachedFiles,
+      };
+      setMessages((prevMessages) => [...prevMessages, userMessage]);
+      setInputValue("");
+      setIsLoading(true);
+
+      let assistantMsgId = Date.now().toString() + "_assistant";
+      let streamedContent = "";
+      let streamedReasoning = "";
+      let streamingNewChatId: string | null = null;
+
+      // Add placeholder assistant message
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          id: assistantMsgId,
+          role: "assistant",
+          content: "",
+          reasoning: "",
+        },
+      ]);
+
+      try {
+        const response = await fetch(CHAT_HANDLER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chatId: currentChatId,
+            userMessageContent: userMessage.content,
+            userId: user.id,
+            model: modelOverride || selectedModel,
+            webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
+            attachedFiles, // NEW
+          }),
+        });
+
+        if (!response.ok) throw new Error(await response.text());
+        if (!response.body) throw new Error("No response body");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let done = false;
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          if (doneReading) {
+            done = true;
+            continue;
+          }
+          buffer += decoder.decode(value, { stream: true });
+
+          // process each complete event
+          while (true) {
+            // Find a full SSE event: ends with \n\n
+            const eventEnd = buffer.indexOf("\n\n");
+            if (eventEnd === -1) break;
+            const rawEvent = buffer.slice(0, eventEnd);
+            buffer = buffer.slice(eventEnd + 2);
+
+            // Parse event and data
+            let event = "message";
+            let data = "";
+            for (let line of rawEvent.split("\n")) {
+              if (line.startsWith("event:")) event = line.slice(6).trim();
+              else if (line.startsWith("data:")) data += line.slice(5).trim();
+            }
+            // Handle event types
+            if (event === "chatId" && data) {
+              streamingNewChatId = data;
+              if (!currentChatId) {
+                setCurrentChatId(data);
+                setSidebarRefreshKey(Date.now());
+                // Do NOT fetchChatMessages here
+              }
+            } else if (event === "reasoning") {
+              try {
+                const parsed = JSON.parse(data);
+                streamedReasoning = parsed.reasoning || "";
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMsgId
+                      ? { ...msg, reasoning: streamedReasoning }
+                      : msg
+                  )
+                );
+              } catch {}
+            } else if (event === "content") {
+              try {
+                const parsed = JSON.parse(data);
+                streamedContent += parsed.content || "";
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMsgId
+                      ? { ...msg, content: streamedContent }
+                      : msg
+                  )
+                );
+              } catch {}
+            } else if (event === "done") {
+              try {
+                const parsed = JSON.parse(data);
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMsgId
+                      ? {
+                          ...msg,
+                          content: parsed.content,
+                          reasoning: parsed.reasoning,
+                        }
+                      : msg
+                  )
+                );
+
+                if (!currentChatId && streamingNewChatId) {
+                  setCurrentChatId(streamingNewChatId);
+                  setSidebarRefreshKey(Date.now());
+                  // Do NOT call fetchChatMessages here -- trust streamed messages!
+                } else if (currentChatId) {
+                  // For existing chats, fetch – but do not replace messages if fetch returns empty!
+                  const fetchData = await supabase
+                    .from('messages')
+                    .select('id, role, content, created_at')
+                    .eq('chat_id', currentChatId)
+                    .order('created_at', { ascending: true });
+
+                  if (fetchData.error) {
+                    toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
+                    // Do NOT clear messages
+                  } else if ((fetchData.data ?? []).length > 0) {
+                    setMessages(
+                      fetchData.data.map(parseAssistantMessage)
+                    );
+                  }
+                  // If fetchData.data is empty, don't clear/overwrite existing messages!
+                }
+              } catch {}
+              done = true;
+            } else if (event === "error") {
+              try {
+                const parsed = JSON.parse(data);
+                toast({ title: "Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
+                // Remove the streamed assistant message placeholder
+                setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
+                done = true;
+              } catch {}
+            }
+          }
+        }
+      } catch (err: any) {
+        toast({ title: "Error sending message", description: err?.message || "Could not connect to chat service.", variant: "destructive" });
+        setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== assistantMsgId));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [inputValue, user, currentChatId, selectedModel, webSearchEnabled]
+  );
 
   const handleNewChat = useCallback(() => {
     setCurrentChatId(null);

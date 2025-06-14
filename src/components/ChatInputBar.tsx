@@ -14,22 +14,10 @@ import { LLMModel } from "@/types/llm-model";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Lock } from "lucide-react";
-import { Eye, ImageIcon, FileText, LucideFile } from "lucide-react";
+import { Eye, ImageIcon, FileText, LucideFile, File, Upload } from "lucide-react";
+import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload"; // NEW
 
 const MODEL_LIST: LLMModel[] = (modelsJson as any).data;
-
-interface ChatInputBarProps {
-  inputValue: string;
-  setInputValue: (v: string) => void;
-  onSend: (model: string, webSearchEnabled: boolean) => void;
-  isLoading?: boolean;
-  disabled?: boolean;
-  user?: any;
-  selectedModel: string;
-  setSelectedModel: (m: string) => void;
-  webSearchEnabled: boolean;
-  setWebSearchEnabled: (enabled: boolean) => void;
-}
 
 const iconsByModality: Record<string, React.ReactNode> = {
   text: <Eye className="h-5 w-5" aria-label="Text" />,
@@ -50,6 +38,21 @@ function prettyNum(num?: number | null) {
   return num.toLocaleString();
 }
 
+interface ChatInputBarProps {
+  inputValue: string;
+  setInputValue: (v: string) => void;
+  onSend: (model: string, webSearchEnabled: boolean) => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+  user?: any;
+  selectedModel: string;
+  setSelectedModel: (m: string) => void;
+  webSearchEnabled: boolean;
+  setWebSearchEnabled: (enabled: boolean) => void;
+  attachedFiles?: UploadedFile[];
+  setAttachedFiles?: (files: UploadedFile[]) => void;
+}
+
 const ChatInputBar: React.FC<ChatInputBarProps> = ({
   inputValue,
   setInputValue,
@@ -60,11 +63,37 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   selectedModel,
   setSelectedModel,
   webSearchEnabled,
-  setWebSearchEnabled
+  setWebSearchEnabled,
+  attachedFiles = [],
+  setAttachedFiles = () => {},
 }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const { upload: uploadFile, uploading, error: uploadError } = useFileUpload();
+
+  // Attaching files (images, pdf)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      for (let i = 0; i < files.length; ++i) {
+        const file = files[i];
+        // Accept images/pdf only
+        if (!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) continue;
+        const uploaded = await uploadFile(file);
+        if (uploaded) {
+          setAttachedFiles([...attachedFiles, uploaded]);
+        }
+      }
+    }
+    // reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (i: number) => {
+    setAttachedFiles(attachedFiles.filter((_, idx) => idx !== i));
+  };
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -98,6 +127,40 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
             }}
             aria-label="Message input"
           />
+
+          {/* Attachments preview (small chips) */}
+          {attachedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {attachedFiles.map((file, i) => (
+                <div
+                  key={file.url}
+                  className="flex items-center bg-blue-900/60 text-xs text-white rounded px-2 py-1"
+                >
+                  {file.type.startsWith("image/") ? (
+                    <ImageIcon className="w-4 h-4 mr-1" />
+                  ) : (
+                    <FileText className="w-4 h-4 mr-1" />
+                  )}
+                  <a
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate max-w-[80px] underline"
+                  >
+                    {file.name}
+                  </a>
+                  <button
+                    type="button"
+                    className="ml-1 text-white/70 hover:text-rose-400"
+                    title="Remove"
+                    onClick={() => removeFile(i)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Send button */}
           <Button
@@ -189,19 +252,25 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
               aria-label="Attach file"
               className="ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-transparent text-zinc-300 hover:bg-white/10 transition-colors"
               onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
             >
               <Paperclip className="h-5 w-5" />
               <input
                 ref={fileInputRef}
                 type="file"
+                accept="image/png,image/jpeg,image/webp,application/pdf"
+                multiple
                 className="hidden"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    setFile(e.target.files[0]);
-                  }
-                }}
+                onChange={handleFileSelect}
               />
             </button>
+            {uploading && (
+              <span className="ml-2 text-xs text-blue-300">Uploading…</span>
+            )}
+            {uploadError && (
+              <span className="ml-2 text-xs text-rose-400">{uploadError}</span>
+            )}
+
             {file && (
               <span className="ml-2 text-xs text-white/70 truncate max-w-[120px]">
                 {file.name}
