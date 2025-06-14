@@ -2,6 +2,7 @@
   "data": [
     {
       "id": "openai/o3-pro",
+      "provider": "OpenAI",
       "canonical_slug": "openai/o3-pro-2025-06-10",
       "name": "OpenAI: o3 Pro",
       "context_length": 200000,
@@ -20,6 +21,7 @@
     },
     {
       "id": "google/gemini-2.5-pro-preview",
+      "provider": "Google",
       "canonical_slug": "google/gemini-2.5-pro-preview-06-05",
       "name": "Google: Gemini 2.5 Pro Preview 06-05",
       "context_length": 1048576,
@@ -38,6 +40,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-distill-qwen-7b",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-distill-qwen-7b",
       "name": "DeepSeek: R1 Distill Qwen 7B",
       "context_length": 131072,
@@ -56,6 +59,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-0528",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-0528",
       "name": "DeepSeek: R1 0528",
       "context_length": 128000,
@@ -74,6 +78,7 @@
     },
     {
       "id": "anthropic/claude-opus-4",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-4-opus-20250522",
       "name": "Anthropic: Claude Opus 4",
       "context_length": 200000,
@@ -92,6 +97,7 @@
     },
     {
       "id": "anthropic/claude-sonnet-4",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-4-sonnet-20250522",
       "name": "Anthropic: Claude Sonnet 4",
       "context_length": 200000,
@@ -110,6 +116,7 @@
     },
     {
       "id": "google/gemini-2.5-flash-preview-05-20",
+      "provider": "Google",
       "canonical_slug": "google/gemini-2.5-flash-preview-05-20",
       "name": "Google: Gemini 2.5 Flash Preview 05-20",
       "context_length": 1048576,
@@ -128,6 +135,7 @@
     },
     {
       "id": "google/gemini-2.5-flash-preview-05-20:thinking",
+      "provider": "Google",
       "canonical_slug": "google/gemini-2.5-flash-preview-05-20",
       "name": "Google: Gemini 2.5 Flash Preview 05-20 (thinking)",
       "context_length": 1048576,
@@ -146,6 +154,7 @@
     },
     {
       "id": "google/gemini-2.5-pro-preview-05-06",
+      "provider": "Google",
       "canonical_slug": "google/gemini-2.5-pro-preview-03-25",
       "name": "Google: Gemini 2.5 Pro Preview 05-06",
       "context_length": 1048576,
@@ -164,6 +173,7 @@
     },
     {
       "id": "anthropic/claude-3.7-sonnet",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-3-7-sonnet-20250219",
       "name": "Anthropic: Claude 3.7 Sonnet",
       "context_length": 200000,
@@ -182,6 +192,7 @@
     },
     {
       "id": "anthropic/claude-3.7-sonnet:thinking",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-3-7-sonnet-20250219",
       "name": "Anthropic: Claude 3.7 Sonnet (thinking)",
       "context_length": 200000,
@@ -200,6 +211,7 @@
     },
     {
       "id": "openai/gpt-4.1",
+      "provider": "OpenAI",
       "canonical_slug": "openai/gpt-4.1-2025-04-14",
       "name": "OpenAI: GPT-4.1",
       "context_length": 1047576,
@@ -218,6 +230,7 @@
     },
     {
       "id": "openai/gpt-4.1-mini",
+      "provider": "OpenAI",
       "canonical_slug": "openai/gpt-4.1-mini-2025-04-14",
       "name": "OpenAI: GPT-4.1 Mini",
       "context_length": 1047576,
@@ -236,6 +249,7 @@
     },
     {
       "id": "openai/gpt-4.1-nano",
+      "provider": "OpenAI",
       "canonical_slug": "openai/gpt-4.1-nano-2025-04-14",
       "name": "OpenAI: GPT-4.1 Nano",
       "context_length": 1047576,
@@ -254,6 +268,7 @@
     },
     {
       "id": "meta-llama/llama-3.3-70b-instruct",
+      "provider": "Meta",
       "canonical_slug": "meta-llama/llama-3.3-70b-instruct",
       "name": "Meta: Llama 3.3 70B Instruct",
       "context_length": 131072,
@@ -272,6 +287,7 @@
     },
     {
       "id": "google/gemini-2.0-flash-001",
+      "provider": "Google",
       "canonical_slug": "google/gemini-2.0-flash-001",
       "name": "Google: Gemini 2.0 Flash",
       "context_length": 1048576,
@@ -290,6 +306,7 @@
     },
     {
       "id": "aion-labs/aion-1.0-mini",
+      "provider": "AionLabs",
       "canonical_slug": "aion-labs/aion-1.0-mini",
       "name": "AionLabs: Aion-1.0-Mini",
       "context_length": 131072,
@@ -308,6 +325,7 @@
     },
     {
       "id": "qwen/qwen-vl-max",
+      "provider": "Qwen",
       "canonical_slug": "qwen/qwen-vl-max-2025-01-25",
       "name": "Qwen: Qwen VL Max",
       "context_length": 7500,
@@ -326,6 +344,7 @@
     },
     {
       "id": "openai/o3-mini",
+      "provider": "OpenAI",
       "canonical_slug": "openai/o3-mini-2025-01-31",
       "name": "OpenAI: o3 Mini",
       "context_length": 200000,
@@ -344,6 +363,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-distill-qwen-1.5b",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-distill-qwen-1.5b",
       "name": "DeepSeek: R1 Distill Qwen 1.5B",
       "context_length": 131072,
@@ -362,6 +382,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-distill-qwen-32b",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-distill-qwen-32b",
       "name": "DeepSeek: R1 Distill Qwen 32B",
       "context_length": 131072,
@@ -380,6 +401,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-distill-qwen-14b",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-distill-qwen-14b",
       "name": "DeepSeek: R1 Distill Qwen 14B",
       "context_length": 64000,
@@ -398,6 +420,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-distill-llama-70b",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-distill-llama-70b",
       "name": "DeepSeek: R1 Distill Llama 70B",
       "context_length": 131072,
@@ -416,6 +439,7 @@
     },
     {
       "id": "deepseek/deepseek-r1",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1",
       "name": "DeepSeek: R1",
       "context_length": 128000,
@@ -434,6 +458,7 @@
     },
     {
       "id": "deepseek/deepseek-chat-v3-0324",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-chat-v3-0324",
       "name": "DeepSeek: DeepSeek V3 0324",
       "context_length": 163840,
@@ -452,6 +477,7 @@
     },
     {
       "id": "deepseek/deepseek-chat",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-chat-v3",
       "name": "DeepSeek: DeepSeek V3",
       "context_length": 163840,
@@ -470,6 +496,7 @@
     },
     {
       "id": "anthropic/claude-3.5-sonnet",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-3.5-sonnet",
       "name": "Anthropic: Claude 3.5 Sonnet",
       "context_length": 200000,
@@ -488,6 +515,7 @@
     },
     {
       "id": "x-ai/grok-3-beta",
+      "provider": "xAI",
       "canonical_slug": "x-ai/grok-3-beta",
       "name": "xAI: Grok 3 Beta",
       "context_length": 131072,
@@ -506,6 +534,7 @@
     },
     {
       "id": "x-ai/grok-3-mini-beta",
+      "provider": "xAI",
       "canonical_slug": "x-ai/grok-3-mini-beta",
       "name": "xAI: Grok 3 Mini Beta",
       "context_length": 131072,
@@ -524,6 +553,7 @@
     },
     {
       "id": "meta-llama/llama-4-maverick",
+      "provider": "Meta",
       "canonical_slug": "meta-llama/llama-4-maverick-17b-128e-instruct",
       "name": "Meta: Llama 4 Maverick",
       "context_length": 1048576,
@@ -542,6 +572,7 @@
     },
     {
       "id": "meta-llama/llama-4-scout",
+      "provider": "Meta",
       "canonical_slug": "meta-llama/llama-4-scout-17b-16e-instruct",
       "name": "Meta: Llama 4 Scout",
       "context_length": 1048576,
@@ -560,6 +591,7 @@
     },
     {
       "id": "qwen/qwq-32b",
+      "provider": "Qwen",
       "canonical_slug": "qwen/qwq-32b",
       "name": "Qwen: QwQ 32B",
       "context_length": 131072,
@@ -578,6 +610,7 @@
     },
     {
       "id": "openai/gpt-4o-mini",
+      "provider": "OpenAI",
       "canonical_slug": "openai/gpt-4o-mini",
       "name": "OpenAI: GPT-4o-mini",
       "context_length": 128000,
@@ -596,6 +629,7 @@
     },
     {
       "id": "openai/gpt-4o",
+      "provider": "OpenAI",
       "canonical_slug": "openai/gpt-4o",
       "name": "OpenAI: GPT-4o",
       "context_length": 128000,
@@ -614,6 +648,7 @@
     },
     {
       "id": "openai/gpt-4.5-preview",
+      "provider": "OpenAI",
       "canonical_slug": "openai/gpt-4.5-preview-2025-02-27",
       "name": "OpenAI: GPT-4.5 (Preview)",
       "context_length": 128000,
@@ -632,6 +667,7 @@
     },
     {
       "id": "google/gemini-2.0-flash-lite-001",
+      "provider": "Google",
       "canonical_slug": "google/gemini-2.0-flash-lite-001",
       "name": "Google: Gemini 2.0 Flash Lite",
       "context_length": 1048576,
@@ -650,6 +686,7 @@
     },
     {
       "id": "openai/o4-mini-high",
+      "provider": "OpenAI",
       "canonical_slug": "openai/o4-mini-high-2025-04-16",
       "name": "OpenAI: o4 Mini High",
       "context_length": 200000,
@@ -668,6 +705,7 @@
     },
     {
       "id": "openai/o3",
+      "provider": "OpenAI",
       "canonical_slug": "openai/o3-2025-04-16",
       "name": "OpenAI: o3",
       "context_length": 200000,
@@ -686,6 +724,7 @@
     },
     {
       "id": "openai/o4-mini",
+      "provider": "OpenAI",
       "canonical_slug": "openai/o4-mini-2025-04-16",
       "name": "OpenAI: o4 Mini",
       "context_length": 200000,
@@ -704,6 +743,7 @@
     },
     {
       "id": "deepseek/deepseek-r1-distill-llama-8b",
+      "provider": "DeepSeek",
       "canonical_slug": "deepseek/deepseek-r1-distill-llama-8b",
       "name": "DeepSeek: R1 Distill Llama 8B",
       "context_length": 32000,
@@ -722,6 +762,7 @@
     },
     {
       "id": "anthropic/claude-3.5-sonnet",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-3.5-sonnet",
       "name": "Anthropic: Claude 3.5 Sonnet",
       "context_length": 200000,
@@ -740,6 +781,7 @@
     },
     {
       "id": "anthropic/claude-3-opus",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-3-opus",
       "name": "Anthropic: Claude 3 Opus",
       "context_length": 200000,
@@ -758,6 +800,7 @@
     },
     {
       "id": "anthropic/claude-3-sonnet",
+      "provider": "Anthropic",
       "canonical_slug": "anthropic/claude-3-sonnet",
       "name": "Anthropic: Claude 3 Sonnet",
       "context_length": 200000,
