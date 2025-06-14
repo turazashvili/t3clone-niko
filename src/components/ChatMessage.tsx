@@ -33,26 +33,11 @@ interface ChatMessageProps {
     attachedFiles?: UploadedFile[];
     chat_id?: string;
   };
-  // New: pass all handlers and needed state as props
-  messages: any[];
-  setMessages: React.Dispatch<React.SetStateAction<any[]>>;
-  selectedModel: string;
-  currentChatId: string | null;
-  deleteMessagesAfter: (messageId: string) => Promise<void>;
-  editMessage: (msgId: string, newContent: string, modelOverride?: string) => Promise<boolean>;
 }
 
 const isImageType = (fileType: string) => fileType.startsWith("image/");
 
-const ChatMessage: React.FC<ChatMessageProps> = ({
-  msg,
-  messages,
-  setMessages,
-  selectedModel,
-  currentChatId,
-  deleteMessagesAfter,
-  editMessage,
-}) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   const [reasonOpen, setReasonOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
@@ -67,12 +52,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     setSelectedFile(null);
   };
 
+  // Add context/hook for main chat handlers
+  const {
+    handleSendMessage,
+    setMessages,
+    messages,
+    selectedModel,
+    currentChatId,
+    deleteMessagesAfter,
+    editMessage,
+  } = useChat();
+
   // Add UI editing state
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
-
-  // Defensive: Editing should be possible only if messages are loaded
-  const editDisabled = messages.length === 0;
 
   // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
@@ -313,13 +306,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 messageContent={msg.content}
                 onRetry={handleRetry}
                 currentModel={selectedModel}
-                onEdit={editDisabled ? undefined : handleEditClick}
+                onEdit={handleEditClick}
               />
-              {editDisabled && (
-                <div className="text-xs text-yellow-300 mt-1 px-2">
-                  Editing disabled (message list not loaded yet)
-                </div>
-              )}
             </div>
           )}
           {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}

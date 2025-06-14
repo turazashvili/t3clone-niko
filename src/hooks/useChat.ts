@@ -30,11 +30,6 @@ export const MODEL_LIST = [
   { label: "DeepSeek R1", value: "deepseek/deepseek-r1-0528" },
 ];
 
-function isUuidV4(id: string): boolean {
-  // Matches UUID v4, e.g., 01234567-89ab-cdef-0123-456789abcdef
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-}
-
 export function useChat() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -81,15 +76,14 @@ export function useChat() {
       toast({ title: "Error fetching messages", description: error.message, variant: "destructive" });
       setMessages([]);
     } else {
+      // On successful fetch: wipe and replace with only the DB messages (no leftover optimistic messages)
       setMessages(
-        (data ?? [])
-          .map((raw) => {
-            const role: "user" | "assistant" =
-              raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
-            const parsed = parseAssistantMessage(raw);
-            return { ...parsed, chat_id: raw.chat_id, role };
-          })
-          .filter((msg) => isUuidV4(msg.id)) // Only keep real DB messages (ignore optimistic)
+        (data ?? []).map((raw) => {
+          // parseAssistantMessage may need to propagate chat_id now
+          // If it does not, we add it here:
+          const parsed = parseAssistantMessage(raw);
+          return { ...parsed, chat_id: raw.chat_id };
+        })
       );
     }
     setIsLoading(false);
@@ -132,176 +126,35 @@ export function useChat() {
         return false;
       }
       setIsLoading(true);
-
-      // ---- DEBUG: log current messages array and ids for diagnostics ----
-      console.log("editMessage called with msgId:", msgId);
-      console.log("Current messages:", messages.map(m => ({ id: m.id, role: m.role, content: m.content })));
-
-      const userMsgIdx = messages.findIndex(m => m.id === msgId);
-      if (userMsgIdx === -1) {
-        setIsLoading(false);
-        toast({
-          title: "Edit error",
-          description: `Message to edit not found. ids=[${messages.map(m=>m.id).join(', ')}]`,
-          variant: "destructive"
-        });
-        return false;
-      }
-
-      setMessages(prevMsgs =>
-        prevMsgs.map((msg, i) =>
-          msg.id === msgId ? { ...msg, content: newContent } : msg
-        )
-      );
-
-      const assistantReplyId = `edit-assistant-${Date.now()}`;
-      setMessages(prevMsgs => [
-        ...prevMsgs.slice(0, userMsgIdx + 1),
-        {
-          id: assistantReplyId,
-          role: "assistant",
-          content: "",
-          reasoning: "",
-          chat_id: messages[userMsgIdx].chat_id,
-        },
-      ]);
-
       try {
-        const resp = await fetch("https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            id: msgId,
-            newContent,
-            modelOverride,
-          }),
-        });
-        if (!resp.ok) {
-          let msg = "Unknown error";
-          try {
-            const errObj = await resp.json();
-            msg = errObj?.error || JSON.stringify(errObj);
-          } catch {}
-          toast({ title: "Edit Failed", description: msg, variant: "destructive" });
+        const payload: Record<string, any> = { id: msgId, newContent };
+        if (modelOverride) payload.modelOverride = modelOverride;
+        const res = await fetch(
+          "https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          toast({ title: "Failed to edit message", description: data.error || "Unknown error", variant: "destructive" });
           setIsLoading(false);
           return false;
-        }
-        if (!resp.body) {
-          toast({ title: "Edit Failed", description: "No response body from server.", variant: "destructive" });
-          setIsLoading(false);
-          return false;
-        }
-
-        // Handle SSE streaming
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let streamedContent = "";
-        let streamedReasoning = "";
-        let done = false;
-
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          if (doneReading) {
-            done = true;
-            continue;
-          }
-          buffer += decoder.decode(value, { stream: true });
-
-          while (true) {
-            const eventEnd = buffer.indexOf("\n\n");
-            if (eventEnd === -1) break;
-            const rawEvent = buffer.slice(0, eventEnd);
-            buffer = buffer.slice(eventEnd + 2);
-
-            let event = "message";
-            let data = "";
-            for (let line of rawEvent.split("\n")) {
-              if (line.startsWith("event:")) event = line.slice(6).trim();
-              else if (line.startsWith("data:")) data += line.slice(5).trim();
-            }
-
-            if (event === "reasoning") {
-              try {
-                const parsed = JSON.parse(data);
-                streamedReasoning = parsed.reasoning || "";
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantReplyId
-                      ? { ...msg, reasoning: streamedReasoning }
-                      : msg
-                  )
-                );
-              } catch { }
-            } else if (event === "content") {
-              try {
-                const parsed = JSON.parse(data);
-                streamedContent += parsed.content || "";
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantReplyId
-                      ? { ...msg, content: streamedContent }
-                      : msg
-                  )
-                );
-              } catch { }
-            } else if (event === "done") {
-              try {
-                // On done, force a DB fetch for all messages for this chat
-                const chatToFetch = messages[userMsgIdx].chat_id;
-                if (chatToFetch) {
-                  const { data, error } = await supabase
-                    .from('messages')
-                    .select('id, role, content, created_at, attachments, reasoning, chat_id')
-                    .eq('chat_id', chatToFetch)
-                    .order('created_at', { ascending: true });
-                  if (!error && data) {
-                    setMessages(
-                      data.map((raw) => {
-                        const role: "user" | "assistant" =
-                          raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
-                        return {
-                          ...raw,
-                          role,
-                          attachedFiles: (raw.attachments && Array.isArray(raw.attachments))
-                            ? raw.attachments.map((f: any) => ({
-                              name: f.name,
-                              type: f.type,
-                              url: f.url,
-                              originalFile: undefined,
-                            })) : [],
-                        };
-                      })
-                    );
-                  }
-                }
-              } catch { }
-              done = true;
-            } else if (event === "error") {
-              try {
-                const parsed = JSON.parse(data);
-                toast({ title: "Edit Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
-                // Remove streaming assistant from UI
-                setMessages((prev) => prev.filter((m) => m.id !== assistantReplyId));
-                done = true;
-              } catch { }
-            }
-          }
         }
         setIsLoading(false);
         return true;
-      } catch (e: any) {
-        toast({ title: "Edit error", description: e?.message || "Network error", variant: "destructive" });
+      } catch(e: any) {
+        toast({ title: "Failed to edit message", description: e.message, variant: "destructive" });
         setIsLoading(false);
-        // Remove assistant streaming placeholder if present
-        setMessages((prev) => prev.filter((m) => m.id !== assistantReplyId));
         return false;
       }
     },
-    [session, messages]
+    [session]
   );
 
   // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
