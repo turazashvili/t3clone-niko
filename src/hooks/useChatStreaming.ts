@@ -151,7 +151,16 @@ export async function sendMessageStreaming({
         }
       },
       onError: (err) => {
-        toast({ title: "Error", description: err || "Unknown error", variant: "destructive" });
+        toast({
+          title: "Error",
+          description:
+            typeof err === "string"
+              ? err
+              : (err && typeof err === "object" && "message" in err && typeof err.message === "string"
+                ? err.message
+                : "Unknown error"),
+          variant: "destructive",
+        });
         setMessages((prev) => prev.filter((m) => m.id !== userMessage.id && m.id !== assistantMsgId));
       }
     });

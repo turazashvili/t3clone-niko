@@ -188,7 +188,12 @@ export function useChat() {
           }
           toast({
             title: "Failed to edit message",
-            description: (errJson && (errJson.error || errJson.message)) || errText || "Unknown error",
+            description:
+              typeof err === "string"
+                ? err
+                : (err && typeof err === "object" && "message" in err && typeof err.message === "string"
+                  ? err.message
+                  : "Unknown error from server"),
             variant: "destructive",
           });
           setIsLoading(false);
