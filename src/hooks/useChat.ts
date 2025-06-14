@@ -65,7 +65,7 @@ export function useChat() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('messages')
-      .select('id, role, content, created_at, attachments, chat_id') // <-- Include chat_id
+      .select('id, role, content, created_at, attachments, chat_id')
       .eq('chat_id', chatId)
       .order('created_at', { ascending: true });
 
@@ -73,6 +73,7 @@ export function useChat() {
       toast({ title: "Error fetching messages", description: error.message, variant: "destructive" });
       setMessages([]);
     } else {
+      // On successful fetch: wipe and replace with only the DB messages (no leftover optimistic messages)
       setMessages(
         (data ?? []).map((raw) => {
           // parseAssistantMessage may need to propagate chat_id now
