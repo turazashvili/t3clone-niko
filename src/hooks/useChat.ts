@@ -318,8 +318,9 @@ export function useChat() {
 
   // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
 
-  // === sendMessage handler now refreshes sidebar on first DB sync ===
-  const { triggerSidebarRefresh } = useSidebarSync(user?.id); // Only need the trigger, not the refreshKey here
+  // === sendMessage handler now refreshes sidebar on every DB sync ===
+  const { triggerSidebarRefresh } = useSidebarSync(user?.id);
+
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -352,11 +353,6 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // REMOVE the optimistic setMessages here!
-      // Previously, something like:
-      // setMessages((prev) => [...prev, { ... }]);
-      // Instead, just send the message, and let realtime sync show it when it is inserted.
-
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -368,10 +364,9 @@ export function useChat() {
         setMessages,
         setIsLoading,
         attachedFiles: attachedFiles || [],
-        // --- REFRESH SIDEBAR AFTER THE FIRST MESSAGE IS SYNCED TO DB ---
+        // Always trigger sidebar refresh after each message is sent and synced.
         onFirstMessageDone: () => {
           setSidebarRefreshKey(Date.now());
-          // Add this line below to always refresh the sidebar!
           if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
       });
