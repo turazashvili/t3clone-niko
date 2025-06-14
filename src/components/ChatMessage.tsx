@@ -112,9 +112,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               <CollapsibleContent className="text-xs bg-[#181638]/60 rounded p-2">
                 <ReactMarkdown
                   components={{
-                    code({ node, inline, className, children, ...props }) {
+                    code({ className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
-                      return !inline && match ? (
+                      return match ? (
                         <SyntaxHighlighter
                           style={atomDark}
                           language={match[1]}
@@ -158,9 +158,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               <p className="whitespace-pre-wrap text-base">
                 <ReactMarkdown
                   components={{
-                    code({ node, inline, className, children, ...props }) {
+                    code({ className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
-                      return !inline && match ? (
+                      return match ? (
                         <SyntaxHighlighter
                           style={atomDark}
                           language={match[1]}
