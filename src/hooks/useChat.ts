@@ -254,7 +254,7 @@ export function useChat() {
               if (error) {
                 toast({
                   title: "Error fetching messages",
-                  description: error.message,
+                  description: formatToastError(error),
                   variant: "destructive",
                 });
               } else {
@@ -263,10 +263,10 @@ export function useChat() {
             }
             setIsLoading(false);
           },
-          onError: (err) => {
+          onError: (e) => {
             toast({
               title: "Error editing message",
-              description: err || "Unknown error from server",
+              description: formatToastError(e),
               variant: "destructive",
             });
             // Remove blanked assistant message if present
