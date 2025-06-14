@@ -189,15 +189,20 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
+      // REMOVE the optimistic setMessages here!
+      // Previously, something like:
+      // setMessages((prev) => [...prev, { ... }]);
+      // Instead, just send the message, and let realtime sync show it when it is inserted.
+
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
-        currentChatId: chatIdOverride ?? currentChatId, // ALWAYS use explicit if given!
+        currentChatId: chatIdOverride ?? currentChatId,
         selectedModel: modelOverride || selectedModel,
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        setMessages,
+        setMessages, // Still pass this, as sendMessageStreaming might want to update messages after stream is done.
         setIsLoading,
         attachedFiles: attachedFiles || [],
       });
