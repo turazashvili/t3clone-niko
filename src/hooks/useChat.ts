@@ -1,8 +1,11 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
+import modelsJson from "@/data/models.json";
+import { LLMModel } from "@/types/llm-model";
+
+export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
 export interface Message {
   id: string;
@@ -34,7 +37,7 @@ export function useChat() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState<number>(0);
-  const [selectedModel, setSelectedModel] = useState(MODEL_LIST[0].value);
+  const [selectedModel, setSelectedModel] = useState(MODELS_LIST[0].id);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
   useEffect(() => {

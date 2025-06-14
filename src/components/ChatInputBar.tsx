@@ -9,16 +9,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import modelsJson from "@/data/models.json";
+import { LLMModel } from "@/types/llm-model";
 
-const MODEL_LIST = [
-  { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro-preview" },
-  { label: "GPT-4o Mini", value: "openai/o4-mini" },
-  { label: "GPT-4.1", value: "openai/gpt-4.1" },
-  { label: "OpenAI o1 Pro", value: "openai/o1-pro" },
-  { label: "Claude Opus 4", value: "anthropic/claude-opus-4" },
-  { label: "Claude Sonnet 4", value: "anthropic/claude-sonnet-4" },
-  { label: "DeepSeek R1", value: "deepseek/deepseek-r1-0528" },
-];
+const MODEL_LIST: LLMModel[] = (modelsJson as any).data;
 
 interface ChatInputBarProps {
   inputValue: string;
@@ -103,8 +97,8 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                   className="flex items-center text-sm bg-transparent font-medium hover:bg-white/10 rounded-md px-2 py-1.5 gap-2 text-white transition border-none focus-visible:ring-1 focus-visible:ring-accent"
                 >
                   <span>
-                    {MODEL_LIST.find(m => m.value === selectedModel)?.label ||
-                      MODEL_LIST[0].label}
+                    {MODEL_LIST.find(m => m.id === selectedModel)?.name ||
+                      MODEL_LIST[0].name}
                   </span>
                   <ChevronDown className="ml-1 w-4 h-4 text-white/70" />
                 </button>
@@ -112,17 +106,17 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
               <DropdownMenuContent align="start" className="z-[60] min-w-[180px] bg-[#201732] text-white border-[#433A60] rounded-xl shadow-xl py-1 px-0">
                 {MODEL_LIST.map((m) => (
                   <DropdownMenuItem
-                    key={m.value}
+                    key={m.id}
                     onSelect={() => {
-                      setSelectedModel(m.value);
+                      setSelectedModel(m.id);
                       setDropdownOpen(false);
                     }}
                     className={cn(
                       "cursor-pointer px-4 py-2 hover:bg-pink-900/30 rounded-lg text-base",
-                      m.value === selectedModel ? "font-semibold bg-pink-800/15" : ""
+                      m.id === selectedModel ? "font-semibold bg-pink-800/15" : ""
                     )}
                   >
-                    {m.label}
+                    {m.name}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>

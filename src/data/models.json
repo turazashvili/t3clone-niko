@@ -1,0 +1,778 @@
+{
+  "data": [
+    {
+      "id": "openai/o3-pro",
+      "canonical_slug": "openai/o3-pro-2025-06-10",
+      "name": "OpenAI: o3 Pro",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "file", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 100000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "google/gemini-2.5-pro-preview",
+      "canonical_slug": "google/gemini-2.5-pro-preview-06-05",
+      "name": "Google: Gemini 2.5 Pro Preview 06-05",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["file", "image", "text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 65536,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-qwen-7b",
+      "canonical_slug": "deepseek/deepseek-r1-distill-qwen-7b",
+      "name": "DeepSeek: R1 Distill Qwen 7B",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Qwen",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": null,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-0528",
+      "canonical_slug": "deepseek/deepseek-r1-0528",
+      "name": "DeepSeek: R1 0528",
+      "context_length": 128000,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "DeepSeek",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 128000,
+        "max_completion_tokens": 32768,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4",
+      "canonical_slug": "anthropic/claude-4-opus-20250522",
+      "name": "Anthropic: Claude Opus 4",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 32000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4",
+      "canonical_slug": "anthropic/claude-4-sonnet-20250522",
+      "name": "Anthropic: Claude Sonnet 4",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 64000,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash-preview-05-20",
+      "canonical_slug": "google/gemini-2.5-flash-preview-05-20",
+      "name": "Google: Gemini 2.5 Flash Preview 05-20",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 65535,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash-preview-05-20:thinking",
+      "canonical_slug": "google/gemini-2.5-flash-preview-05-20",
+      "name": "Google: Gemini 2.5 Flash Preview 05-20 (thinking)",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 65535,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "google/gemini-2.5-pro-preview-05-06",
+      "canonical_slug": "google/gemini-2.5-pro-preview-03-25",
+      "name": "Google: Gemini 2.5 Pro Preview 05-06",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 65535,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "anthropic/claude-3.7-sonnet",
+      "canonical_slug": "anthropic/claude-3-7-sonnet-20250219",
+      "name": "Anthropic: Claude 3.7 Sonnet",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 64000,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "anthropic/claude-3.7-sonnet:thinking",
+      "canonical_slug": "anthropic/claude-3-7-sonnet-20250219",
+      "name": "Anthropic: Claude 3.7 Sonnet (thinking)",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 128000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/gpt-4.1",
+      "canonical_slug": "openai/gpt-4.1-2025-04-14",
+      "name": "OpenAI: GPT-4.1",
+      "context_length": 1047576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1047576,
+        "max_completion_tokens": 32768,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-mini",
+      "canonical_slug": "openai/gpt-4.1-mini-2025-04-14",
+      "name": "OpenAI: GPT-4.1 Mini",
+      "context_length": 1047576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1047576,
+        "max_completion_tokens": 32768,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/gpt-4.1-nano",
+      "canonical_slug": "openai/gpt-4.1-nano-2025-04-14",
+      "name": "OpenAI: GPT-4.1 Nano",
+      "context_length": 1047576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1047576,
+        "max_completion_tokens": 32768,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.3-70b-instruct",
+      "canonical_slug": "meta-llama/llama-3.3-70b-instruct",
+      "name": "Meta: Llama 3.3 70B Instruct",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Llama3",
+        "instruct_type": "llama3"
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": 16384,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "google/gemini-2.0-flash-001",
+      "canonical_slug": "google/gemini-2.0-flash-001",
+      "name": "Google: Gemini 2.0 Flash",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 8192,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "aion-labs/aion-1.0-mini",
+      "canonical_slug": "aion-labs/aion-1.0-mini",
+      "name": "AionLabs: Aion-1.0-Mini",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": 32768,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "qwen/qwen-vl-max",
+      "canonical_slug": "qwen/qwen-vl-max-2025-01-25",
+      "name": "Qwen: Qwen VL Max",
+      "context_length": 7500,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Qwen",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 7500,
+        "max_completion_tokens": 1500,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "openai/o3-mini",
+      "canonical_slug": "openai/o3-mini-2025-01-31",
+      "name": "OpenAI: o3 Mini",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 100000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-qwen-1.5b",
+      "canonical_slug": "deepseek/deepseek-r1-distill-qwen-1.5b",
+      "name": "DeepSeek: R1 Distill Qwen 1.5B",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": 32768,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-qwen-32b",
+      "canonical_slug": "deepseek/deepseek-r1-distill-qwen-32b",
+      "name": "DeepSeek: R1 Distill Qwen 32B",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Qwen",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": 16384,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-qwen-14b",
+      "canonical_slug": "deepseek/deepseek-r1-distill-qwen-14b",
+      "name": "DeepSeek: R1 Distill Qwen 14B",
+      "context_length": 64000,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Qwen",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 64000,
+        "max_completion_tokens": 32000,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-llama-70b",
+      "canonical_slug": "deepseek/deepseek-r1-distill-llama-70b",
+      "name": "DeepSeek: R1 Distill Llama 70B",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Llama3",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": 16384,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1",
+      "canonical_slug": "deepseek/deepseek-r1",
+      "name": "DeepSeek: R1",
+      "context_length": 128000,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "DeepSeek",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 128000,
+        "max_completion_tokens": 32768,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat-v3-0324",
+      "canonical_slug": "deepseek/deepseek-chat-v3-0324",
+      "name": "DeepSeek: DeepSeek V3 0324",
+      "context_length": 163840,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "DeepSeek",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 163840,
+        "max_completion_tokens": null,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat",
+      "canonical_slug": "deepseek/deepseek-chat-v3",
+      "name": "DeepSeek: DeepSeek V3",
+      "context_length": 163840,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "DeepSeek",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 163840,
+        "max_completion_tokens": 163840,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "anthropic/claude-3.5-sonnet",
+      "canonical_slug": "anthropic/claude-3.5-sonnet",
+      "name": "Anthropic: Claude 3.5 Sonnet",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 8192,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "x-ai/grok-3-beta",
+      "canonical_slug": "x-ai/grok-3-beta",
+      "name": "xAI: Grok 3 Beta",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Grok",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": null,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "x-ai/grok-3-mini-beta",
+      "canonical_slug": "x-ai/grok-3-mini-beta",
+      "name": "xAI: Grok 3 Mini Beta",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Grok",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": null,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "meta-llama/llama-4-maverick",
+      "canonical_slug": "meta-llama/llama-4-maverick-17b-128e-instruct",
+      "name": "Meta: Llama 4 Maverick",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Llama4",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 16384,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "meta-llama/llama-4-scout",
+      "canonical_slug": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "name": "Meta: Llama 4 Scout",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Llama4",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 1048576,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "qwen/qwq-32b",
+      "canonical_slug": "qwen/qwq-32b",
+      "name": "Qwen: QwQ 32B",
+      "context_length": 131072,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Qwen",
+        "instruct_type": "qwq"
+      },
+      "top_provider": {
+        "context_length": 131072,
+        "max_completion_tokens": null,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "openai/gpt-4o-mini",
+      "canonical_slug": "openai/gpt-4o-mini",
+      "name": "OpenAI: GPT-4o-mini",
+      "context_length": 128000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 128000,
+        "max_completion_tokens": 16384,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/gpt-4o",
+      "canonical_slug": "openai/gpt-4o",
+      "name": "OpenAI: GPT-4o",
+      "context_length": 128000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 128000,
+        "max_completion_tokens": 16384,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/gpt-4.5-preview",
+      "canonical_slug": "openai/gpt-4.5-preview-2025-02-27",
+      "name": "OpenAI: GPT-4.5 (Preview)",
+      "context_length": 128000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "GPT",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 128000,
+        "max_completion_tokens": 16384,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "google/gemini-2.0-flash-lite-001",
+      "canonical_slug": "google/gemini-2.0-flash-lite-001",
+      "name": "Google: Gemini 2.0 Flash Lite",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 8192,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "openai/o4-mini-high",
+      "canonical_slug": "openai/o4-mini-high-2025-04-16",
+      "name": "OpenAI: o4 Mini High",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 100000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/o3",
+      "canonical_slug": "openai/o3-2025-04-16",
+      "name": "OpenAI: o3",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 100000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "openai/o4-mini",
+      "canonical_slug": "openai/o4-mini-2025-04-16",
+      "name": "OpenAI: o4 Mini",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["image", "text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Other",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 100000,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "deepseek/deepseek-r1-distill-llama-8b",
+      "canonical_slug": "deepseek/deepseek-r1-distill-llama-8b",
+      "name": "DeepSeek: R1 Distill Llama 8B",
+      "context_length": 32000,
+      "architecture": {
+        "modality": "text->text",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "tokenizer": "Llama3",
+        "instruct_type": "deepseek-r1"
+      },
+      "top_provider": {
+        "context_length": 32000,
+        "max_completion_tokens": 32000,
+        "is_moderated": false
+      }
+    },
+    {
+      "id": "anthropic/claude-3.5-sonnet",
+      "canonical_slug": "anthropic/claude-3.5-sonnet",
+      "name": "Anthropic: Claude 3.5 Sonnet",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 8192,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "anthropic/claude-3-opus",
+      "canonical_slug": "anthropic/claude-3-opus",
+      "name": "Anthropic: Claude 3 Opus",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 4096,
+        "is_moderated": true
+      }
+    },
+    {
+      "id": "anthropic/claude-3-sonnet",
+      "canonical_slug": "anthropic/claude-3-sonnet",
+      "name": "Anthropic: Claude 3 Sonnet",
+      "context_length": 200000,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "tokenizer": "Claude",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 200000,
+        "max_completion_tokens": 4096,
+        "is_moderated": true
+      }
+    }
+  ]
+}
