@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Supabase client
@@ -6,6 +5,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Supabase client
 const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Use service role for DB operations
+
+// Add logs for debugging secrets presence
+console.log("Edge function startup secrets check:");
+console.log("OPENROUTER_API_KEY present?:", !!openRouterApiKey);
+console.log("SUPABASE_URL present?:", !!supabaseUrl);
+console.log("SUPABASE_SERVICE_ROLE_KEY present?:", !!supabaseServiceRoleKey);
 
 const ALLOWED_MODELS = [
   "google/gemini-2.5-pro-preview",
