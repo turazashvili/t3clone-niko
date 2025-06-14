@@ -13,6 +13,8 @@ import { UploadedFile } from "@/hooks/useFileUpload";
 import AttachmentViewerDialog from "./AttachmentViewerDialog";
 import MessageActionsBar from "./MessageActionsBar";
 import { useChat } from "@/hooks/useChat";
+import ChatReasoningPanel from "./ChatReasoningPanel";
+import ChatMessageAttachments from "./ChatMessageAttachments";
 
 // Register languages we'll use regularly (more can be added)
 SyntaxHighlighter.registerLanguage("js", js);
@@ -160,15 +162,25 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
           <div className="flex flex-col w-full">
             {/* Reasoning */}
             {msg.role === "assistant" && msg.reasoning && (
-              <Collapsible open={reasonOpen} onOpenChange={setReasonOpen} className="mb-2">
-                <CollapsibleTrigger asChild>
-                  <button className="flex items-center gap-2 text-xs text-blue-200 font-semibold bg-[#232240] hover:bg-[#2f2b50] rounded px-3 py-2 mb-1 transition w-full">
-                    <ChevronDown className={`w-3 h-3 mr-1 transition-transform ${reasonOpen ? "rotate-180" : ""}`} />
-                    Model’s thinking (reasoning)
-                    <span className="ml-auto text-[10px] opacity-60">(Click to {reasonOpen ? "hide" : "show"})</span>
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="text-xs bg-[#181638]/60 rounded p-2">
+              <ChatReasoningPanel reasoning={msg.reasoning} open={reasonOpen} setOpen={setReasonOpen} />
+            )}
+            {isEditing ? (
+              <form onSubmit={handleEditSubmit} className="flex flex-col w-full gap-2">
+                <textarea
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  rows={2}
+                  className="w-full rounded p-2 bg-white/10 text-white"
+                  autoFocus
+                />
+                <div className="flex gap-2 mt-1">
+                  <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
+                  <button type="button" onClick={handleEditCancel} className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="w-full">
                   <ReactMarkdown
                     components={{
                       p: (props) => (
@@ -202,99 +214,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                       }
                     }}
                   >
-                    {msg.reasoning}
-                  </ReactMarkdown>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-            {/* Main message content */}
-            {isEditing ? (
-              <form onSubmit={handleEditSubmit} className="flex flex-col w-full gap-2">
-                <textarea
-                  value={editValue}
-                  onChange={e => setEditValue(e.target.value)}
-                  rows={2}
-                  className="w-full rounded p-2 bg-white/10 text-white"
-                  autoFocus
-                />
-                <div className="flex gap-2 mt-1">
-                  <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
-                  <button type="button" onClick={handleEditCancel} className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <div className="w-full">
-                  <ReactMarkdown
-                    components={{
-                      p: (props) => (
-                        <p className="my-1 leading-relaxed" {...props} />
-                      ),
-                      hr: (props) => (
-                        <hr className="my-3 border-white/10" {...props} />
-                      ),
-                      code({node, className, children, ...props}) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        // @ts-ignore
-                        if (!props.inline && match) {
-                          return (
-                            <SyntaxHighlighter
-                              style={atomDark}
-                              language={match[1]}
-                              PreTag="div"
-                              className="my-2 rounded-lg text-sm"
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
-                          );
-                        }
-                        return (
-                          <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
                     {msg.content}
                   </ReactMarkdown>
                 </div>
                 {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-3 items-center">
-                    {msg.attachedFiles.map((file, idx) => (
-                      <div key={idx} className="flex flex-col items-center">
-                        {isImageType(file.type) ? (
-                          <button
-                            type="button"
-                            onClick={() => handleAttachmentClick(file)}
-                            className="block group bg-transparent border-none outline-none p-0"
-                            tabIndex={0}
-                          >
-                            <img
-                              src={file.url}
-                              alt={file.name}
-                              className="w-24 h-24 object-cover rounded shadow border border-white/10 group-hover:scale-105 transition"
-                            />
-                            <div className="text-xs text-white/70 text-center mt-1 truncate max-w-[90px]">
-                              <ImageIcon size={14} className="inline-block mr-1 align-text-bottom" />
-                              {file.name}
-                            </div>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleAttachmentClick(file)}
-                            className="flex items-center gap-1 text-xs text-blue-200 hover:underline px-2 py-1 rounded bg-white/10"
-                            tabIndex={0}
-                          >
-                            <FileIcon size={14} />
-                            {file.name}
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <ChatMessageAttachments files={msg.attachedFiles} onAttachmentClick={handleAttachmentClick} />
                 )}
               </>
             )}
