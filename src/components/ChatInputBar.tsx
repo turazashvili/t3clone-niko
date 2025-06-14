@@ -133,10 +133,11 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
               </PopoverTrigger>
               <PopoverContent
                 align="start"
-                className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50 max-h-[340px] overflow-hidden"
+                className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50"
+                style={{ overflow: "visible" }}
               >
-                {/* Add a ScrollArea with 320px max height for scrolling inner content */}
-                <ScrollArea className="max-h-[320px]">
+                {/* ScrollArea shows all models and is the only scrollable area */}
+                <ScrollArea className="max-h-[420px] overflow-y-auto">
                   <div>
                     {filteredList.length === 0 && (
                       <div className="text-center text-sm text-zinc-400 py-8">No models found.</div>
