@@ -133,10 +133,18 @@ export function useChat() {
       }
       setIsLoading(true);
 
+      // ---- DEBUG: log current messages array and ids for diagnostics ----
+      console.log("editMessage called with msgId:", msgId);
+      console.log("Current messages:", messages.map(m => ({ id: m.id, role: m.role, content: m.content })));
+
       const userMsgIdx = messages.findIndex(m => m.id === msgId);
       if (userMsgIdx === -1) {
         setIsLoading(false);
-        toast({ title: "Edit error", description: "Message to edit not found.", variant: "destructive" });
+        toast({
+          title: "Edit error",
+          description: `Message to edit not found. ids=[${messages.map(m=>m.id).join(', ')}]`,
+          variant: "destructive"
+        });
         return false;
       }
 
