@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { id, newContent } = await req.json();
+    const { id, newContent, modelOverride } = await req.json();
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -33,10 +33,10 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
     if (!user) return new Response(JSON.stringify({ error: userError?.message || "No user" }), { status: 401, headers: corsHeaders });
 
-    // Verify message ownership
+    // Find the original user message, get content and metadata
     const { data: origMsg, error: getError } = await supabaseClient
       .from("messages")
-      .select("id, user_id, role, chat_id, model")
+      .select("id, user_id, role, chat_id, model, content")
       .eq("id", id)
       .maybeSingle();
 
@@ -44,17 +44,25 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Not authorized to edit this message." }), { status: 403, headers: corsHeaders });
     }
 
-    // Update message content
-    const { error: updateErr } = await supabaseClient
-      .from("messages")
-      .update({ content: newContent })
-      .eq("id", id);
+    // Conditionally update user message content if needed
+    let latestContent = origMsg.content;
+    if (
+      typeof newContent === "string" &&
+      newContent.trim() !== "" &&
+      newContent.trim() !== origMsg.content.trim()
+    ) {
+      const { error: updateErr } = await supabaseClient
+        .from("messages")
+        .update({ content: newContent })
+        .eq("id", id);
 
-    if (updateErr) {
-      return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: corsHeaders });
+      if (updateErr) {
+        return new Response(JSON.stringify({ error: updateErr.message }), { status: 500, headers: corsHeaders });
+      }
+      latestContent = newContent;
     }
 
-    // Find all following messages in this chat (created after this msg)
+    // Get created_at from current user message
     const { data: thisMsgFull } = await supabaseClient
       .from("messages")
       .select("created_at")
@@ -70,8 +78,10 @@ serve(async (req) => {
         .gt("created_at", thisMsgFull.created_at);
     }
 
-    // Get model from original user message, fallback to default if missing
-    let prevModel = origMsg.model ?? DEFAULT_ASSISTANT_MODEL;
+    // Use the modelOverride if provided, else fallback to original model or default
+    const modelToUse = typeof modelOverride === "string" && modelOverride.trim() !== ""
+      ? modelOverride.trim()
+      : (origMsg.model ?? DEFAULT_ASSISTANT_MODEL);
 
     // Gather prior messages (up to 8, as before)
     const { data: priorMessages } = await supabaseClient
@@ -89,7 +99,7 @@ serve(async (req) => {
         role: m.role,
         content: m.content,
       })),
-      { role: "user", content: newContent }
+      { role: "user", content: latestContent }
     ];
 
     // Call OpenRouter
@@ -104,7 +114,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: prevModel,
+        model: modelToUse,
         messages: openrouterMessages,
         stream: false,
         reasoning: { effort: "high" }
@@ -154,16 +164,15 @@ serve(async (req) => {
         content: assistantContent,
         reasoning: assistantReasoning,
         user_id: null, // AI-generated message
-        model: prevModel,
+        model: modelToUse,
       });
 
     if (insertErr) {
       return new Response(JSON.stringify({ error: "Failed to save assistant message: " + insertErr.message }), { status: 500, headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ success: true, assistant: assistantContent, reasoning: assistantReasoning, model: prevModel }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true, assistant: assistantContent, reasoning: assistantReasoning, model: modelToUse }), { headers: corsHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message || "Unexpected error" }), { status: 500, headers: corsHeaders });
   }
 });
-
