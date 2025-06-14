@@ -162,7 +162,7 @@ export function useChat() {
       webSearch?: boolean,
       attachedFiles?: UploadedFile[],
       inputOverride?: string,
-      chatIdOverride?: string // <-- NEW PARAM
+      chatIdOverride?: string
     ) => {
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
       console.log("handleSendMessage called", {
@@ -188,7 +188,7 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // Absolutely NO setMessages or local message mutation here or in sendMessageStreaming.
+      // NO optimistic local setMessages or mutation here.
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -197,7 +197,6 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        // REMOVE setMessages, all message logic solely via realtime now
         setIsLoading,
         attachedFiles: attachedFiles || [],
       });
