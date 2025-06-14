@@ -46,8 +46,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 
   // Handle Retry (modelId: string)
   const handleRetry = (modelId: string) => {
-    // Send exact same message as before
-    handleSendMessage(modelId);
+    // For user messages: send THIS message's content, not the chat input value
+    handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
   };
 
   // Handle Edit: Set input to this message, delete all after (by message id)

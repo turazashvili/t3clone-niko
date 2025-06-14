@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -79,20 +80,27 @@ export function useChat() {
   }, []);
 
   // NEW streaming handler now uses single DB insert (by edge only)
+  // Add inputOverride param: if provided, use as content to send. Otherwise use inputValue (from chat input).
   const handleSendMessage = useCallback(
-    async (modelOverride?: string, webSearch?: boolean, attachedFiles?: UploadedFile[]) => {
-      if (!inputValue.trim()) return;
+    async (
+      modelOverride?: string,
+      webSearch?: boolean,
+      attachedFiles?: UploadedFile[],
+      inputOverride?: string // NEW
+    ) => {
+      const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
+      if (!contentToSend.trim()) return;
       if (!user) {
         toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
         setLoginOpen(true);
         return;
       }
-      // Clear input and immediately set loading state
-      setInputValue("");
+      // Clear input only if using the chat input (not for explicit inputOverride)
+      if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
       await sendMessageStreaming({
-        inputValue,
+        inputValue: contentToSend,
         user,
         currentChatId,
         selectedModel: modelOverride || selectedModel,
