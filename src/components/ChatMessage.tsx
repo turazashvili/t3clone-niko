@@ -199,7 +199,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               </Collapsible>
             )}
             {/* Main message content */}
-            {/* Attachments */}
             {isEditing ? (
               <form onSubmit={handleEditSubmit} className="flex flex-col w-full gap-2">
                 <textarea
