@@ -1,9 +1,8 @@
-
 /**
  * Shared utility for client-side SSE stream handling to update message state in real time.
  */
 
-import { Message } from "./useChat";
+import { Message } from "@/types/chat";
 
 export interface StreamEventHandlers {
   /** Called per reasoning chunk */

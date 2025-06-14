@@ -28,7 +28,7 @@ const ChatReasoningPanel: React.FC<ChatReasoningPanelProps> = ({ reasoning, open
             <p className="my-1 leading-relaxed" {...props} />
           ),
           hr: (props) => (
-            <hr className="my-3 border-white/10" {...props} />
+            <hr className="my-3 border-white/10" />
           ),
           code({node, className, children, ...props}) {
             const match = /language-(\w+)/.exec(props.className || "");

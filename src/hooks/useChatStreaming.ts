@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UploadedFile } from "@/hooks/useFileUpload";
-import { Message } from "@/hooks/useChat";
+import { Message } from "@/types/chat";
 import { processMessageStream } from "./useMessageStreamer";
 import { formatToastError } from "./formatToastError";
 
