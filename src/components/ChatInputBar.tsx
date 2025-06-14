@@ -116,6 +116,39 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const filteredList = MODEL_LIST; // Can add search if needed
   const currentModel = MODEL_LIST.find(m => m.id === selectedModel) || MODEL_LIST[0];
 
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    setFileLimitError(null);
+    const files = e.dataTransfer.files;
+    let newFiles: UploadedFile[] = [...attachedFiles];
+
+    for (let i = 0; i < files.length; ++i) {
+      const file = files[i];
+      if (!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) continue;
+      if (newFiles.length >= MAX_FILES) {
+        setFileLimitError(`You can attach up to ${MAX_FILES} files per message.`);
+        break;
+      }
+      const uploaded = await uploadFile(file);
+      if (uploaded) {
+        newFiles = [...newFiles, uploaded];
+      }
+    }
+    setAttachedFiles(newFiles.slice(0, MAX_FILES));
+  };
+
   return (
     <div
       className={cn(
