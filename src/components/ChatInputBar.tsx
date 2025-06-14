@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import modelsJson from "@/data/models.json";
 import { LLMModel } from "@/types/llm-model";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Lock } from "lucide-react";
+import { Eye, ImageIcon, FileText, LucideFile } from "lucide-react";
 
 const MODEL_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -25,6 +29,25 @@ interface ChatInputBarProps {
   setSelectedModel: (m: string) => void;
   webSearchEnabled: boolean;
   setWebSearchEnabled: (enabled: boolean) => void;
+}
+
+const iconsByModality: Record<string, React.ReactNode> = {
+  text: <Eye className="h-5 w-5" aria-label="Text" />,
+  image: <ImageIcon className="h-5 w-5" aria-label="Image" />,
+  file: <FileText className="h-5 w-5" aria-label="File" />,
+};
+function getModalityIcons(inputs: string[]) {
+  return inputs.map((m) => (
+    <span key={m} className="inline-block mr-1 text-green-300 opacity-80">
+      {iconsByModality[m] || <LucideFile className="h-5 w-5" aria-label={m} />}
+    </span>
+  ));
+}
+function prettyNum(num?: number | null) {
+  if (!num) return "?";
+  if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
+  if (num >= 1e3) return `${(num / 1e3).toLocaleString()}k`;
+  return num.toLocaleString();
 }
 
 const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -47,6 +70,10 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
     if (e) e.preventDefault();
     if (inputValue.trim() && !isLoading && user) onSend(selectedModel, webSearchEnabled);
   };
+
+  // Add model dropdown logic here
+  const filteredList = MODEL_LIST; // Can add search if needed
+  const currentModel = MODEL_LIST.find(m => m.id === selectedModel) || MODEL_LIST[0];
 
   return (
     <div className="pointer-events-auto bg-[#1a1625]/90 rounded-t-2xl border border-[#2b2741] shadow-2xl max-w-3xl mx-auto p-3 pb-2 backdrop-blur-lg">
@@ -89,38 +116,61 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
         {/* Model/file/search row */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-0.5">
-            {/* Model selector */}
-            <DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
-              <DropdownMenuTrigger asChild>
+            {/* Model selector using Popover */}
+            <Popover open={isDropdownOpen} onOpenChange={setDropdownOpen}>
+              <PopoverTrigger asChild>
                 <button
                   type="button"
                   className="flex items-center text-sm bg-transparent font-medium hover:bg-white/10 rounded-md px-2 py-1.5 gap-2 text-white transition border-none focus-visible:ring-1 focus-visible:ring-accent"
+                  onClick={() => setDropdownOpen(!isDropdownOpen)}
+                  aria-label="Select model"
                 >
-                  <span>
-                    {MODEL_LIST.find(m => m.id === selectedModel)?.name ||
-                      MODEL_LIST[0].name}
+                  <span className="truncate max-w-[120px]">
+                    {currentModel.name}
                   </span>
                   <ChevronDown className="ml-1 w-4 h-4 text-white/70" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="z-[60] min-w-[180px] bg-[#201732] text-white border-[#433A60] rounded-xl shadow-xl py-1 px-0">
-                {MODEL_LIST.map((m) => (
-                  <DropdownMenuItem
-                    key={m.id}
-                    onSelect={() => {
-                      setSelectedModel(m.id);
-                      setDropdownOpen(false);
-                    }}
-                    className={cn(
-                      "cursor-pointer px-4 py-2 hover:bg-pink-900/30 rounded-lg text-base",
-                      m.id === selectedModel ? "font-semibold bg-pink-800/15" : ""
-                    )}
-                  >
-                    {m.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50 max-h-[330px]">
+                <ScrollArea className="max-h-[310px] p-2 pr-0">
+                  {filteredList.length === 0 && (
+                    <div className="text-center text-sm text-zinc-400 py-8">No models found.</div>
+                  )}
+                  {filteredList.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setSelectedModel(m.id);
+                        setDropdownOpen(false);
+                      }}
+                      className={
+                        `flex items-center gap-3 py-2 px-2 w-full rounded-lg cursor-pointer group border-l-4 transition-all
+                         ${selectedModel === m.id
+                          ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
+                          : "border-transparent hover:bg-[#222032] text-blue-100"}`
+                      }
+                      style={{ minHeight: "40px" }}
+                      tabIndex={0}
+                    >
+                      <span className="flex-1 text-left truncate">{m.name}
+                        {m.top_provider.is_moderated && (
+                          <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" aria-label="Moderated" />
+                        )}
+                      </span>
+                      <div className="flex items-center gap-0.5">
+                        {getModalityIcons(m.architecture.input_modalities)}
+                      </div>
+                      <span className="ml-2 min-w-[45px] text-xs text-blue-300 opacity-60 mr-1">
+                        Ctx: {prettyNum(m.context_length)}
+                      </span>
+                      <span className="min-w-[38px] text-xs text-violet-300 opacity-70">
+                        Max: {prettyNum(m.top_provider.max_completion_tokens)}
+                      </span>
+                    </button>
+                  ))}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
             {/* Search toggle */}
             <div className="ml-2 flex items-center gap-2 select-none">
               <Globe className="h-5 w-5 text-blue-200" />
