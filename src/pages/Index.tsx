@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -92,7 +93,7 @@ const Index = () => {
     setIsLoading(false);
   };
 
-  // Streaming handler:
+  // Streaming handler: UPDATED to process SSE streaming!
   const handleSendMessage = async (modelOverride?: string, webSearch?: boolean) => {
     if (!inputValue.trim()) return;
     if (!user) {
@@ -110,13 +111,23 @@ const Index = () => {
     setInputValue("");
     setIsLoading(true);
 
-    // For streaming: maintain an in-progress assistant message
-    let streamedReasoning = "";
-    let streamedContent = "";
     let assistantMsgId = Date.now().toString() + "_assistant";
+    let streamedContent = "";
+    let streamedReasoning = "";
+    let streamingNewChatId: string | null = null;
+
+    // Add a tentative placeholder assistant message for live streaming
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        reasoning: "",
+      },
+    ]);
 
     try {
-      // Streaming fetch!
       const response = await fetch(CHAT_HANDLER_URL, {
         method: "POST",
         headers: {
@@ -132,27 +143,103 @@ const Index = () => {
       });
 
       if (!response.ok) throw new Error(await response.text());
+      if (!response.body) throw new Error("No response body");
 
-      // Read the JSON at the end as usual, append message once done
-      // (Backend assembles reasoning and content and saves to db)
-      const { assistantResponse, chatId: newChatId } = await response.json();
-      const { content, reasoning } = JSON.parse(assistantResponse);
-      const assistantMessage: Message = {
-        id: assistantMsgId,
-        role: "assistant",
-        content,
-        reasoning,
-      };
-      if (!currentChatId && newChatId) {
-        setCurrentChatId(newChatId);
-        setSidebarRefreshKey(Date.now());
-        await fetchChatMessages(newChatId);
-      } else {
-        setMessages((prevMessages) => [...prevMessages, assistantMessage]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        if (doneReading) {
+          done = true;
+          continue;
+        }
+        buffer += decoder.decode(value, { stream: true });
+
+        // process each complete event
+        while (true) {
+          // Find a full SSE event: ends with \n\n
+          const eventEnd = buffer.indexOf("\n\n");
+          if (eventEnd === -1) break;
+          const rawEvent = buffer.slice(0, eventEnd);
+          buffer = buffer.slice(eventEnd + 2);
+
+          // Parse event and data
+          let event = "message";
+          let data = "";
+          for (let line of rawEvent.split("\n")) {
+            if (line.startsWith("event:")) event = line.slice(6).trim();
+            else if (line.startsWith("data:")) data += line.slice(5).trim();
+          }
+          // Handle event types
+          if (event === "chatId" && data) {
+            streamingNewChatId = data;
+            if (!currentChatId) {
+              setCurrentChatId(data);
+              setSidebarRefreshKey(Date.now());
+            }
+          } else if (event === "reasoning") {
+            try {
+              const parsed = JSON.parse(data);
+              streamedReasoning = parsed.reasoning || "";
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? { ...msg, reasoning: streamedReasoning }
+                    : msg
+                )
+              );
+            } catch {}
+          } else if (event === "content") {
+            try {
+              const parsed = JSON.parse(data);
+              streamedContent += parsed.content || "";
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? { ...msg, content: streamedContent }
+                    : msg
+                )
+              );
+            } catch {}
+          } else if (event === "done") {
+            // Finalize and replace with parsed content
+            try {
+              const parsed = JSON.parse(data);
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        content: parsed.content,
+                        reasoning: parsed.reasoning,
+                      }
+                    : msg
+                )
+              );
+              if (!currentChatId && streamingNewChatId) {
+                setCurrentChatId(streamingNewChatId);
+                setSidebarRefreshKey(Date.now());
+                await fetchChatMessages(streamingNewChatId);
+              }
+            } catch {}
+            done = true;
+          } else if (event === "error") {
+            try {
+              const parsed = JSON.parse(data);
+              toast({ title: "Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
+              // Remove the streamed assistant message placeholder
+              setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
+              done = true;
+            } catch {}
+          }
+        }
       }
     } catch (err: any) {
-      toast({ title: "Error sending message", description: err.message || "Could not connect to chat service.", variant: "destructive" });
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      toast({ title: "Error sending message", description: err?.message || "Could not connect to chat service.", variant: "destructive" });
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== assistantMsgId));
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +249,7 @@ const Index = () => {
     setCurrentChatId(null);
     setMessages([]);
     setInputValue("");
-    setSidebarRefreshKey(Date.now()); // Trigger a refresh when user starts a new chat session
+    setSidebarRefreshKey(Date.now());
   };
 
   const loadChat = (chatId: string) => {
@@ -229,3 +316,4 @@ const Index = () => {
 };
 
 export default Index;
+
