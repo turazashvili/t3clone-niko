@@ -106,13 +106,14 @@ export function useChat() {
     [messages, currentChatId]
   );
 
-  // Handle sendMessage streaming, ALWAYS use existing chatId
+  // REPLACE THE OLD handleSendMessage with this:
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
       webSearch?: boolean,
       attachedFiles?: UploadedFile[],
-      inputOverride?: string // NEW
+      inputOverride?: string,
+      chatIdOverride?: string // <-- NEW PARAM
     ) => {
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
       console.log("handleSendMessage called", {
@@ -122,30 +123,26 @@ export function useChat() {
         inputOverride,
         contentToSend,
         user,
-        currentChatId
-      }); // ADDED
+        currentChatId: chatIdOverride ?? currentChatId
+      });
 
       if (!contentToSend.trim()) {
-        console.log("Early exit: contentToSend is empty", { contentToSend }); // ADDED
+        console.log("Early exit: contentToSend is empty", { contentToSend });
         return;
       }
       if (!user) {
-        console.log("Early exit: user not set"); // ADDED
+        console.log("Early exit: user not set");
         toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
         setLoginOpen(true);
         return;
       }
-      // This is the key fix: NEVER reset currentChatId here unless handleNewChat is called.
-      // Only allow chat id to be null when intentionally starting a new chat.
-      // If we don't have a chat id, it will be created by the edge function. If we *do*, always supply it.
-      // Clear input only if using the chat input (not for explicit inputOverride)
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
-        currentChatId, // always supply currentChatId (can be null ONLY if a real new chat)
+        currentChatId: chatIdOverride ?? currentChatId, // ALWAYS use explicit if given!
         selectedModel: modelOverride || selectedModel,
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
