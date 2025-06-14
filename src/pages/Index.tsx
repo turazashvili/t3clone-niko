@@ -91,67 +91,34 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // Optimistically add empty assistant message for streaming UI
-      const assistantMsgId = Date.now().toString() + "_assistant";
-      setMessages(prev => [...prev, { id: assistantMsgId, role: "assistant", content: "" }]);
+      const { data, error } = await supabase.functions.invoke('chat-handler', {
+        body: {
+          chatId: currentChatId,
+          userMessageContent: userMessage.content,
+          userId: user.id,
+          model: modelOverride || selectedModel,
+          webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
+        },
+      });
 
-      // -- FIXED SECTION: Use access token from local session state, not supabase.auth.session()
-      const fetchHeaders: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
-      if (session?.access_token) {
-        fetchHeaders['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      if (error) throw error;
 
-      // --- FIX: Call Supabase Edge Function (correct full URL, not relative path)
-      const response = await fetch(
-        'https://tahxsobdcnbbqqonkhup.functions.supabase.co/chat-handler',
-        {
-          method: 'POST',
-          headers: fetchHeaders,
-          body: JSON.stringify({
-            chatId: currentChatId,
-            userMessageContent: userMessage.content,
-            userId: user.id,
-            model: modelOverride || selectedModel,
-            webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
-          }),
-        }
-      );
-
-      if (!response.body || !response.ok) {
-        // Get error message if available
-        let errMsg = "Could not connect to chat service.";
-        try { errMsg = ((await response.json())?.error) ?? errMsg; } catch {}
-        throw new Error(errMsg);
-      }
-
-      // Stream chat content
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let done = false;
-      let assistantContent = "";
-      while (!done) {
-        const { value, done: doneReading } = await reader.read();
-        if (value) {
-          const text = decoder.decode(value);
-          assistantContent += text;
-          setMessages(prevMessages =>
-            prevMessages.map(msg =>
-              msg.id === assistantMsgId ? { ...msg, content: assistantContent } : msg
-            )
-          );
-        }
-        done = doneReading;
-      }
-
-      // When streaming ends, if no chatId, update it and reload full history
-      if (!currentChatId) {
-        setSidebarRefreshKey(Date.now());
+      const { assistantResponse, chatId: newChatId } = data;
+      if (!currentChatId && newChatId) {
+        setCurrentChatId(newChatId);
+        setSidebarRefreshKey(Date.now()); // Trigger Sidebar refresh when creating a new chat!
+        await fetchChatMessages(newChatId);
+      } else {
+        const assistantMessage: Message = {
+          id: Date.now().toString() + "_assistant",
+          role: "assistant",
+          content: assistantResponse,
+        };
+        setMessages((prevMessages) => [...prevMessages, assistantMessage]);
       }
     } catch (err: any) {
       toast({ title: "Error sending message", description: err.message || "Could not connect to chat service.", variant: "destructive" });
-      setMessages(prev => prev.filter(msg => !msg.id?.toString().endsWith("_assistant")));
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
     } finally {
       setIsLoading(false);
     }

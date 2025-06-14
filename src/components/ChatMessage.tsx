@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Bot, User as UserIcon } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 
 interface ChatMessageProps {
   msg: {
@@ -20,9 +19,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => (
         : 'bg-[#271d37] text-white/90 rounded-bl-none'
     }`}>
       {msg.role === 'assistant' && <Bot size={20} className="text-white/70 mt-0.5 shrink-0" />}
-      <div className="prose prose-invert prose-sm max-w-full break-words">
-        <ReactMarkdown>{msg.content}</ReactMarkdown>
-      </div>
+      <p className="whitespace-pre-wrap">{msg.content}</p>
       {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}
     </div>
   </div>
