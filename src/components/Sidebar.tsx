@@ -1,4 +1,3 @@
-
 import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +15,7 @@ interface SidebarProps {
   onLoadChat?: (chatId: string) => void;
   userId?: string | null;
   onSignOutClick?: () => void;
-  triggerRefresh?: any;
+  triggerRefresh?: any; // Add this prop
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadChat, userId, onSignOutClick, triggerRefresh }) => {
@@ -62,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
   }, [userId, triggerRefresh]);
 
   return (
-    <aside className="flex flex-col h-full w-[290px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5">
+    <aside className="flex flex-col h-screen w-[290px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5">
       <div className="flex items-center gap-2 mb-6 select-none">
         <span className="font-bold tracking-wide text-xl text-white">
           T3

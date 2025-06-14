@@ -21,9 +21,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Make ChatArea the only scrollable region of main content
   return (
-    <div className="flex-1 overflow-y-auto pt-8 pb-24 px-4 md:px-6 lg:px-8 space-y-4 min-h-0">
+    <div className="flex-1 overflow-y-auto pt-8 pb-24 px-4 md:px-6 lg:px-8 space-y-4">
       {messages.map((msg, index) => (
         <ChatMessage key={msg.id || index} msg={msg} />
       ))}
@@ -33,4 +32,3 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
-
