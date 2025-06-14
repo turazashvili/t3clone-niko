@@ -38,9 +38,6 @@ const ChatView = () => {
     handleSignOut,
   } = useChat();
 
-  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
-  const [isPublic, setIsPublic] = useState<boolean | undefined>(undefined);
-
   // Set current chat by chatId from URL
   useEffect(() => {
     if (chatId && chatId !== currentChatId) {
@@ -50,34 +47,7 @@ const ChatView = () => {
     // eslint-disable-next-line
   }, [chatId]);
 
-  // Fetch is_public for the chat
-  useEffect(() => {
-    let ignore = false; // Prevent state update after unmount
-    const fetchIsPublic = async () => {
-      if (!chatId) {
-        setIsPublic(undefined);
-        return;
-      }
-      // Import supabase client
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data, error } = await supabase
-        .from("chats")
-        .select("is_public")
-        .eq("id", chatId)
-        .maybeSingle();
-      if (!ignore) {
-        if (error || !data) {
-          setIsPublic(undefined);
-        } else {
-          setIsPublic(data.is_public ?? false);
-        }
-      }
-    };
-    fetchIsPublic();
-    return () => {
-      ignore = true;
-    };
-  }, [chatId]);
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
 
   const handleSend = (model: string, webSearchEnabled: boolean) => {
     handleSendMessage(model, webSearchEnabled, attachedFiles);
@@ -96,26 +66,15 @@ const ChatView = () => {
         onSignOutClick={handleSignOut}
         triggerRefresh={sidebarRefreshKey}
       />
-      {/* Floating share button corner container */}
-      <div
-        className="fixed z-30 top-2 right-4 md:right-12 flex items-center gap-2"
-        style={{
-          // Height/width set for nice floating button area (matches screenshot)
-          // Adjust right/spacing for where your controls are!
-          pointerEvents: "none", // so only button is interactive, not whole div
-        }}
-      >
-        <ShareChatButton chatId={chatId} isPublic={isPublic} />
-      </div>
       <main
         className="flex flex-col min-h-screen"
         style={{ marginLeft: SIDEBAR_WIDTH }}
       >
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Remove old share button position */}
           <div className="flex items-center justify-between pt-4 pb-2 max-w-3xl mx-auto px-4">
             <div />
-            {/* ShareChatButton removed from here */}
+            {/* Only show if this is a valid chatId */}
+            <ShareChatButton chatId={chatId} />
           </div>
           {messages.length === 0 && !isLoading ? (
             <EmptyState />

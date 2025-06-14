@@ -37,43 +37,36 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId, isPublic }) =
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            className="pointer-events-auto px-3 py-2 gap-2 rounded-full shadow-lg border border-accent bg-[#19101c]/90 text-accent-foreground
-            hover:bg-accent/60 hover:text-primary transition-all
-            backdrop-blur-md
-            "
-            size="sm"
-            title="Copy public link"
-            onClick={handleShare}
-            aria-label="Share chat"
-            type="button"
-            style={{
-              minWidth: 40,
-              minHeight: 40,
-              fontWeight: 500,
-              fontSize: "1rem",
-              boxShadow: "0 4px 24px 0 rgba(140,28,191,0.08)",
-            }}
-          >
-            <Copy size={18} />
-            <span className="font-medium">{copied ? "Copied!" : "Share"}</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <span>Copy public link to this chat</span>
-        </TooltipContent>
-      </Tooltip>
+    <div className="flex flex-col items-end gap-1">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
+              size="sm"
+              title="Copy public link"
+              onClick={handleShare}
+              aria-label="Share chat"
+              type="button"
+            >
+              <Copy size={18} />
+              <span className="font-medium">{copied ? "Copied!" : "Share"}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <span>Copy public link to this chat</span>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       {isPublic === false && (
-        <span className="text-xs mt-2 text-destructive-foreground/90 bg-destructive/10 border border-destructive/20 px-2 py-1 rounded-sm animate-pulse shadow-lg pointer-events-auto">
+        <span className="text-xs mt-1 text-destructive-foreground/90 bg-destructive/10 border border-destructive/20 px-2 py-1 rounded-sm animate-pulse">
           This chat is <b>not public</b>, so others won't be able to view it.
         </span>
       )}
-    </TooltipProvider>
+    </div>
   );
 };
 
 export default ShareChatButton;
+
