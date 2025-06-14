@@ -1,5 +1,4 @@
-
-import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut, RefreshCcw } from "lucide-react";
+import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -36,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   // === Use custom sidebar sync hook ===
   const { refreshKey: sidebarRefreshKey } = useSidebarSync(userId);
-
+  
   // Fetch chats on refreshKey change (sync engine OR manual)
   useEffect(() => {
     async function fetchRecentChats() {
@@ -61,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     fetchRecentChats();
   }, [userId, sidebarRefreshKey, triggerRefresh]);
-
+  
   return (
     <aside
       className={`fixed left-0 top-0 z-30 h-screen w-[${SIDEBAR_WIDTH}px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5 flex flex-col`}
@@ -72,16 +71,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           T3
           <span className="text-accent font-bold">.chat</span>
         </span>
-        {/* Manual refresh button */}
-        <button
-          className="ml-auto p-1 rounded hover:bg-[#251933] transition"
-          title="Refresh list"
-          aria-label="Refresh sidebar"
-          onClick={() => triggerRefresh && triggerRefresh()}
-          type="button"
-        >
-          <RefreshCcw size={20} className="text-white/60" />
-        </button>
       </div>
       <button
         className="w-full flex items-center gap-2 px-4 py-3 rounded-lg bg-accent font-semibold text-white shadow-sm hover:bg-accent-dark transition mb-2 text-base focus:outline-none"
@@ -157,4 +146,3 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
-
