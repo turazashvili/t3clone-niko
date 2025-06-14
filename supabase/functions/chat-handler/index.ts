@@ -47,12 +47,22 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!openRouterApiKey || !supabaseUrl || !supabaseServiceRoleKey) {
-      console.error("Missing environment variables in Edge Function");
-      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+    // Identify which secrets are missing, if any
+    const missingSecrets = [];
+    if (!openRouterApiKey) missingSecrets.push('OPENROUTER_API_KEY');
+    if (!supabaseUrl) missingSecrets.push('SUPABASE_URL');
+    if (!supabaseServiceRoleKey) missingSecrets.push('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (missingSecrets.length > 0) {
+      console.error("Missing environment variables in Edge Function:", missingSecrets.join(", "));
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error', missingSecrets }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
