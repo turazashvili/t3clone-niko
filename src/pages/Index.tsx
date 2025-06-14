@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -26,7 +27,7 @@ const Index = () => {
   } = useChat();
 
   return (
-    <div className="flex min-h-screen w-full bg-transparent">
+    <div className="flex min-h-screen h-screen w-full bg-transparent">
       <Sidebar
         onLoginClick={() => setLoginOpen(true)}
         onNewChatClick={handleNewChat}
@@ -35,14 +36,19 @@ const Index = () => {
         onSignOutClick={handleSignOut}
         triggerRefresh={sidebarRefreshKey}
       />
-      <main className="flex-1 flex flex-col min-h-screen relative bg-transparent">
-        {messages.length === 0 && !isLoading ? (
-          <EmptyState />
-        ) : (
-          <ChatArea messages={messages} isLoading={isLoading} />
-        )}
-        {/* Chat Input Area */}
-        <div className="w-full max-w-3xl mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
+      {/* Main area: flex-col, chat area scrolls, input/footer pinned */}
+      <main className="flex-1 flex flex-col min-h-0 h-full relative bg-transparent">
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0">
+            {messages.length === 0 && !isLoading ? (
+              <EmptyState />
+            ) : (
+              <ChatArea messages={messages} isLoading={isLoading} />
+            )}
+          </div>
+        </div>
+        {/* Chat Input Area - pinned at the bottom, not part of the scrollable area */}
+        <div className="w-full max-w-3xl mx-auto px-4 pb-6 pt-2">
           <div className="flex items-center justify-between mb-2">
             <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
           </div>
@@ -71,3 +77,4 @@ const Index = () => {
 };
 
 export default Index;
+
