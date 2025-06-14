@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from "react";
 import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
@@ -103,39 +102,6 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Drag and drop handlers
-  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-    setFileLimitError(null);
-    const files = e.dataTransfer.files;
-    let newFiles: UploadedFile[] = [...attachedFiles];
-
-    for (let i = 0; i < files.length; ++i) {
-      const file = files[i];
-      if (!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) continue;
-      if (newFiles.length >= MAX_FILES) {
-        setFileLimitError(`You can attach up to ${MAX_FILES} files per message.`);
-        break;
-      }
-      const uploaded = await uploadFile(file);
-      if (uploaded) {
-        newFiles = [...newFiles, uploaded];
-      }
-    }
-    setAttachedFiles(newFiles.slice(0, MAX_FILES));
-  };
-
   const removeFile = (i: number) => {
     setAttachedFiles(attachedFiles.filter((_, idx) => idx !== i));
     setFileLimitError(null);
@@ -157,6 +123,9 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
         dragActive && "ring-2 ring-pink-400 ring-offset-2"
       )}
       onDragEnter={handleDrag}
+      onDragOver={handleDrag}
+      onDragLeave={handleDrag}
+      onDrop={handleDrop}
     >
       {/* DRAG AND DROP OVERLAY */}
       {dragActive && (
@@ -176,10 +145,6 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
         className="flex flex-col gap-2 w-full"
         onSubmit={handleSend}
         autoComplete="off"
-        onDragEnter={handleDrag}
-        onDragOver={handleDrag}
-        onDragLeave={handleDrag}
-        onDrop={handleDrop}
       >
         {/* Textarea + actions row */}
         <div className="flex flex-row items-end gap-3 w-full">
