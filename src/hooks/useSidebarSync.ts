@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,14 +23,13 @@ export function useSidebarSync(userId?: string | null) {
   useEffect(() => {
     // Always clean up previous channel instance if any before subscribing a new one
     if (channelRef.current) {
-      // Defensive: remove previous channel before creating a new one
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
     if (!userId) return;
 
-    // Always make a *fresh* channel for each userId
+    // Create a truly new channel instance
     const channel = supabase
       .channel(`public:chats:sidebar:${userId}:${Date.now()}`) // Unique name per userId/time
       .on(
@@ -38,12 +38,15 @@ export function useSidebarSync(userId?: string | null) {
         () => {
           triggerSidebarRefresh();
         }
-      )
-      .subscribe();
+      );
+
+    // Only call .subscribe() ONCE for the channel instance
+    channel.subscribe();
 
     channelRef.current = channel;
 
     return () => {
+      // Always cleanup the current channel
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -53,3 +56,4 @@ export function useSidebarSync(userId?: string | null) {
 
   return { refreshKey, triggerSidebarRefresh };
 }
+
