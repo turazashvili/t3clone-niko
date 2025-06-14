@@ -98,22 +98,56 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 
   return (
     <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-      {/* Use full width, match .max-w-3xl.mx-auto.px-4 from input box */}
+      {/* 
+        Widen assistant responses to max-w-3xl centered.
+        Make user responses only as wide as the text (max-w-fit), right-aligned.
+      */}
       <div
-        className={`
-          w-full
-          max-w-3xl
-          mx-auto
-          px-4
-          flex
-          ${msg.role === 'user' ? 'justify-end' : 'justify-start'}
-        `}
+        className={
+          msg.role === "user"
+            ? // User: bubble only as wide as content, right-aligned
+              "w-full flex justify-end"
+            : // Assistant: full width in container
+              "w-full flex justify-start"
+        }
       >
-        <div className={`w-full p-3 rounded-xl flex flex-col items-start gap-2 relative
-          ${msg.role === 'user'
-            ? 'bg-accent text-white rounded-br-none'
-            : 'bg-[#271d37] text-white/90 rounded-bl-none'
-          }`}
+        <div
+          className={
+            msg.role === "user"
+              ? [
+                  // Make bubble only as wide as needed, up to a sensible max
+                  "max-w-fit",
+                  "self-end",
+                  "px-4", // still some horizontal padding
+                  "p-3",
+                  "rounded-xl",
+                  "flex",
+                  "flex-col",
+                  "items-start",
+                  "gap-2",
+                  "relative",
+                  "bg-accent",
+                  "text-white",
+                  "rounded-br-none",
+                ].join(" ")
+              : [
+                  // Assistant: same as before, wide bubble
+                  "w-full",
+                  "max-w-3xl",
+                  "mx-auto",
+                  "px-4",
+                  "p-3",
+                  "rounded-xl",
+                  "flex",
+                  "flex-col",
+                  "items-start",
+                  "gap-2",
+                  "relative",
+                  "bg-[#271d37]",
+                  "text-white/90",
+                  "rounded-bl-none",
+                ].join(" ")
+          }
         >
           {msg.role === 'assistant' && <Bot size={20} className="text-white/70 mt-0.5 shrink-0" />}
           <div className="flex flex-col w-full">
@@ -268,7 +302,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
             </div>
           )}
           {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}
-          {/* Attachment Viewer Dialog (modal, one per ChatMessage instance) */}
+          {/* Attachment Viewer Dialog */}
           <AttachmentViewerDialog open={viewerOpen} file={selectedFile} onClose={handleCloseViewer} />
         </div>
       </div>
