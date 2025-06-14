@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
@@ -44,6 +44,20 @@ export function useChat() {
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState<number>(0);
   const [selectedModel, setSelectedModel] = useState(MODELS_LIST[0].id);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
+
+  // Track previous chat id to detect when a new chat is created
+  const prevChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      prevChatIdRef.current === null &&
+      typeof currentChatId === "string" &&
+      !!currentChatId
+    ) {
+      // Just transitioned from new chat (null) to first real chatId
+      setSidebarRefreshKey(Date.now());
+    }
+    prevChatIdRef.current = currentChatId;
+  }, [currentChatId]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
