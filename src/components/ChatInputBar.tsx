@@ -7,7 +7,8 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Button, Switch } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 const MODEL_LIST = [
   { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro-preview" },
