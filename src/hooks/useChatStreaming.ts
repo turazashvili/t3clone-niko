@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UploadedFile } from "@/hooks/useFileUpload";
@@ -182,7 +181,7 @@ export async function sendMessageStreaming({
               if (fetchData.error) {
                 toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
               } else {
-                setMessages(
+                setMessages(() => 
                   (fetchData.data ?? []).map(parseAssistantMessage)
                 );
               }
@@ -210,4 +209,3 @@ export async function sendMessageStreaming({
 
 // Export parseAssistantMessage in case needed outside
 export { parseAssistantMessage };
-
