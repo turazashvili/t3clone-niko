@@ -119,24 +119,33 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               <CollapsibleContent className="text-xs bg-[#181638]/60 rounded p-2">
                 <ReactMarkdown
                   components={{
-                    code({ className, children, ...props }) {
+                    p: ({node, ...props}) => (
+                      <p className="my-1 leading-relaxed" {...props} />
+                    ),
+                    hr: ({node, ...props}) => (
+                      <hr className="my-3 border-white/10" {...props} />
+                    ),
+                    code({node, inline, className, children, ...props}) {
                       const match = /language-(\w+)/.exec(className || "");
-                      return match ? (
-                        <SyntaxHighlighter
-                          style={atomDark}
-                          language={match[1]}
-                          PreTag="div"
-                          className="rounded-lg"
-                          {...props}
-                        >
-                          {String(children).replace(/\n$/, "")}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className={className} {...props}>
+                      if (!inline && match) {
+                        return (
+                          <SyntaxHighlighter
+                            style={atomDark}
+                            language={match[1]}
+                            PreTag="div"
+                            className="my-2 rounded-lg text-sm"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        );
+                      }
+                      return (
+                        <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
                           {children}
                         </code>
                       );
-                    },
+                    }
                   }}
                 >
                   {msg.reasoning}
@@ -162,32 +171,41 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
             </form>
           ) : (
             <>
-              <p className="whitespace-pre-wrap text-base">
+              <div className="w-full">
                 <ReactMarkdown
                   components={{
-                    code({ className, children, ...props }) {
+                    p: ({node, ...props}) => (
+                      <p className="my-1 leading-relaxed" {...props} />
+                    ),
+                    hr: ({node, ...props}) => (
+                      <hr className="my-3 border-white/10" {...props} />
+                    ),
+                    code({node, inline, className, children, ...props}) {
                       const match = /language-(\w+)/.exec(className || "");
-                      return match ? (
-                        <SyntaxHighlighter
-                          style={atomDark}
-                          language={match[1]}
-                          PreTag="div"
-                          className="rounded-lg"
-                          {...props}
-                        >
-                          {String(children).replace(/\n$/, "")}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className={className} {...props}>
+                      if (!inline && match) {
+                        return (
+                          <SyntaxHighlighter
+                            style={atomDark}
+                            language={match[1]}
+                            PreTag="div"
+                            className="my-2 rounded-lg text-sm"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        );
+                      }
+                      return (
+                        <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
                           {children}
                         </code>
                       );
-                    },
+                    }
                   }}
                 >
                   {msg.content}
                 </ReactMarkdown>
-              </p>
+              </div>
               {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-3 items-center">
                   {msg.attachedFiles.map((file, idx) => (
