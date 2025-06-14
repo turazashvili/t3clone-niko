@@ -1,1 +1,13 @@
+
+# Supabase project ID
 project_id = "tahxsobdcnbbqqonkhup"
+
+# Example of a function definition
+# [functions.hello-world]
+# auth_token_user_id_claim = "sub" # Optional: If you want to pass the user_id to the function
+
+[functions.chat-handler]
+# auth_token_user_id_claim = "sub" # Not needed as we pass userId in payload
+verify_jwt = true # Ensure requests are authenticated
+
+# You can add more function definitions below
