@@ -68,6 +68,51 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          basic_model_monthly_limit: number
+          chat_count: number
+          current_basic_model_count: number
+          current_premium_model_count: number
+          full_name: string | null
+          id: string
+          plan: Database["public"]["Enums"]["app_plan"]
+          premium_model_monthly_limit: number
+          stripe_customer_id: string | null
+          updated_at: string | null
+          usage_period_start_date: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          basic_model_monthly_limit?: number
+          chat_count?: number
+          current_basic_model_count?: number
+          current_premium_model_count?: number
+          full_name?: string | null
+          id: string
+          plan?: Database["public"]["Enums"]["app_plan"]
+          premium_model_monthly_limit?: number
+          stripe_customer_id?: string | null
+          updated_at?: string | null
+          usage_period_start_date?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          basic_model_monthly_limit?: number
+          chat_count?: number
+          current_basic_model_count?: number
+          current_premium_model_count?: number
+          full_name?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["app_plan"]
+          premium_model_monthly_limit?: number
+          stripe_customer_id?: string | null
+          updated_at?: string | null
+          usage_period_start_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -76,7 +121,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_plan: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -191,6 +236,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_plan: ["free", "pro"],
+    },
   },
 } as const
