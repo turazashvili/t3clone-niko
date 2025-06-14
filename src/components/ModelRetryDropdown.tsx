@@ -53,7 +53,11 @@ const ModelRetryDropdown: React.FC<ModelRetryDropdownProps> = ({ onRetry, curren
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="bg-[#191525]">
               {modelGroups[provider].map((m) => (
-                <DropdownMenuItem key={m.id} onClick={() => onRetry(m.id)} className="hover:bg-[#232240] flex items-center">
+                <DropdownMenuItem
+                  key={m.id}
+                  onClick={() => onRetry(m.id)}
+                  className="hover:bg-[#232240] flex items-center text-pink-300"
+                >
                   {m.name}
                 </DropdownMenuItem>
               ))}
