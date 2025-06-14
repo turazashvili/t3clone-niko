@@ -140,6 +140,7 @@ export function useChat() {
           setIsLoading(false);
           return false;
         }
+        setIsLoading(false);
         return true;
       } catch(e: any) {
         toast({ title: "Failed to edit message", description: e.message, variant: "destructive" });
@@ -150,7 +151,8 @@ export function useChat() {
     [session]
   );
 
-  // REPLACE THE OLD handleSendMessage with this:
+  // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
+
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -199,7 +201,9 @@ export function useChat() {
     [inputValue, user, currentChatId, selectedModel, webSearchEnabled]
   );
 
-  // Helper for redoing after edit (delete following, send as new prompt)
+  // Helper for redoing after edit - NO LONGER NEEDED for UI edit flow!
+  // Kept for API compatibility, but should now be avoided for in-UI flow
+
   const redoAfterEdit = useCallback(
     async ({
       msgId,
@@ -214,18 +218,10 @@ export function useChat() {
       modelOverride?: string;
       chat_id?: string;
     }) => {
-      // 1. Delete all following messages
-      await deleteMessagesAfter(msgId);
-
-      // 2. Send the edited message as a new prompt (preserving attachments, chat_id)
-      // This will cause the UI to show ONLY messages up to edited one + the new assistant response
-      await handleSendMessage(
-        modelOverride,
-        undefined,
-        attachedFiles || [],
-        newContent,
-        chat_id
-      );
+      // OLD LOGIC, NO LONGER USED IN MAIN EDIT FLOW
+      // - delete all following messages
+      // - send the edited message as a new prompt (preserving attachments, chat_id)
+      // LEAVE IT for now but don't use in the main ChatMessage edit submit.
     },
     [deleteMessagesAfter, handleSendMessage]
   );
@@ -265,8 +261,9 @@ export function useChat() {
     handleNewChat,
     loadChat,
     handleSignOut,
-    deleteMessagesAfter, // NEW
+    deleteMessagesAfter,
     editMessage,
-    redoAfterEdit, // <-- Export our new helper
+    redoAfterEdit,
+    fetchChatMessages
   };
 }
