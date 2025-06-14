@@ -202,8 +202,8 @@ export function useChat() {
         await processMessageStream(reader, {
           onReasoning: (chunk) => {
             streamedReasoning = chunk;
+            console.log("[SSE][editMessage][onReasoning]", { msgId, assistantMsgId, streamedReasoning });
             setMessages(prev => {
-              // Update the UI assistant placeholder
               const idx = prev.findIndex((m, i) =>
                 m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
               );
@@ -223,6 +223,7 @@ export function useChat() {
           },
           onContent: (chunk) => {
             streamedContent += chunk;
+            console.log("[SSE][editMessage][onContent]", { msgId, assistantMsgId, streamedContent });
             setMessages(prev => {
               const idx = prev.findIndex((m, i) =>
                 m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
@@ -242,6 +243,7 @@ export function useChat() {
             });
           },
           onDone: async ({ content, reasoning }) => {
+            console.log("[SSE][editMessage][onDone]", { msgId, assistantMsgId, content, reasoning });
             // Refetch the full chat for consistency
             const iMsg = messages.find((m) => m.id === msgId);
             const chatIdToFetch = iMsg?.chat_id || currentChatId;
@@ -258,12 +260,14 @@ export function useChat() {
                   variant: "destructive",
                 });
               } else {
+                console.log("[SSE][editMessage][onDone] setMessages from DB", data);
                 setMessages(() => (data ?? []).map(parseAssistantMessage));
               }
             }
             setIsLoading(false);
           },
           onError: (e) => {
+            console.error("[SSE][editMessage][onError]", e);
             toast({
               title: "Error editing message",
               description: formatToastError(e),

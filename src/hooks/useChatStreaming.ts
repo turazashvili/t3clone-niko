@@ -104,6 +104,7 @@ export async function sendMessageStreaming({
     await processMessageStream(reader, {
       onReasoning: (chunk) => {
         streamedReasoning = chunk;
+        console.log("[SSE][sendMessageStreaming][onReasoning]", {assistantMsgId, streamedReasoning});
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
@@ -114,6 +115,7 @@ export async function sendMessageStreaming({
       },
       onContent: (chunk) => {
         streamedContent += chunk;
+        console.log("[SSE][sendMessageStreaming][onContent]", {assistantMsgId, streamedContent});
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
@@ -123,6 +125,7 @@ export async function sendMessageStreaming({
         );
       },
       onDone: async ({ content, reasoning }) => {
+        console.log("[SSE][sendMessageStreaming][onDone]", {assistantMsgId, content, reasoning});
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
@@ -145,6 +148,7 @@ export async function sendMessageStreaming({
           if (fetchData.error) {
             toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
           } else {
+            console.log("[SSE][sendMessageStreaming][onDone] setMessages from DB", fetchData.data);
             setMessages(() =>
               (fetchData.data ?? []).map(parseAssistantMessage)
             );
@@ -152,6 +156,7 @@ export async function sendMessageStreaming({
         }
       },
       onError: (err) => {
+        console.error("[SSE][sendMessageStreaming][onError]", err);
         toast({
           title: "Error",
           description: formatToastError(err),
