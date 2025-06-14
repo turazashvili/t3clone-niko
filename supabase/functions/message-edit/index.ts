@@ -6,16 +6,16 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Content-Type": "application/json",
+  "Content-Type": "text/event-stream; charset=utf-8",
 };
 
-// CHANGE THIS AS DESIRED!
 const DEFAULT_ASSISTANT_MODEL = "openai/gpt-4o-mini";
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
 serve(async (req) => {
+  // Handle OPTIONS preflight for CORS
   if (req.method === "OPTIONS") {
-    return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -78,7 +78,6 @@ serve(async (req) => {
         .gt("created_at", thisMsgFull.created_at);
     }
 
-    // Use the modelOverride if provided, else fallback to original model or default
     const modelToUse = typeof modelOverride === "string" && modelOverride.trim() !== ""
       ? modelOverride.trim()
       : (origMsg.model ?? DEFAULT_ASSISTANT_MODEL);
@@ -92,7 +91,7 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(8);
 
-    // Compose OpenRouter messages (system, then history, then user)
+    // Compose OpenRouter messages
     const openrouterMessages = [
       { role: "system", content: "You are a helpful AI assistant." },
       ...(priorMessages ?? []).map((m: any) => ({
@@ -102,12 +101,20 @@ serve(async (req) => {
       { role: "user", content: latestContent }
     ];
 
-    // Call OpenRouter
     if (!OPENROUTER_API_KEY) {
       return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY not set in function environment." }), { status: 500, headers: corsHeaders });
     }
 
-    const openrouterCall = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    // === STREAMING IMPLEMENTATION START ===
+    // Prepare SSE streaming response
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    let assistantContent = "";
+    let assistantReasoning = "";
+
+    // Compose OpenRouter streaming call
+    const openrouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -116,63 +123,119 @@ serve(async (req) => {
       body: JSON.stringify({
         model: modelToUse,
         messages: openrouterMessages,
-        stream: false,
+        stream: true,
         reasoning: { effort: "high" }
       }),
     });
 
-    if (!openrouterCall.ok) {
+    if (!openrouterRes.ok || !openrouterRes.body) {
       let err = "OpenRouter request error";
       try { 
-        const errObj = await openrouterCall.json(); 
+        const errObj = await openrouterRes.json(); 
         err = errObj?.error?.message || JSON.stringify(errObj); 
       } catch { 
-        try { err = await openrouterCall.text(); } catch {}
+        try { err = await openrouterRes.text(); } catch {}
       }
       return new Response(JSON.stringify({ error: err }), { status: 500, headers: corsHeaders });
     }
 
-    const respData = await openrouterCall.json();
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const reader = openrouterRes.body!.getReader();
+          let buffer = "";
+          let done = false;
 
-    let assistantContent = "";
-    let assistantReasoning = "";
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            if (doneReading) {
+              done = true;
+              continue;
+            }
+            buffer += decoder.decode(value, { stream: true });
 
-    // Some OpenRouter models may respond with just .choices[], some with .choices[].message.content, etc.
-    if (respData.choices?.[0]?.message) {
-      // Try new content/reasoning if present, else just .content
-      const msg = respData.choices[0].message;
-      if (typeof msg == "object") {
-        assistantContent = msg.content ?? "";
-        // If reasoning is present
-        if ('reasoning' in msg) assistantReasoning = msg.reasoning ?? "";
-      } else {
-        assistantContent = msg;
+            while (true) {
+              const eventEnd = buffer.indexOf("\n");
+              if (eventEnd === -1) break;
+              const line = buffer.slice(0, eventEnd).trim();
+              buffer = buffer.slice(eventEnd + 1);
+
+              if (!line || line.startsWith(":")) continue;
+
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                  done = true;
+                  break;
+                }
+                try {
+                  const parsed = JSON.parse(data);
+                  // Handle delta streaming
+                  if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
+                    assistantReasoning += parsed.choices[0].delta.reasoning || "";
+                    controller.enqueue(encoder.encode(
+                      `event: reasoning\ndata: ${JSON.stringify({ reasoning: assistantReasoning })}\n\n`
+                    ));
+                  }
+                  if (parsed.choices?.[0]?.delta?.content !== undefined) {
+                    assistantContent += parsed.choices[0].delta.content || "";
+                    controller.enqueue(encoder.encode(
+                      `event: content\ndata: ${JSON.stringify({ content: parsed.choices[0].delta.content })}\n\n`
+                    ));
+                  }
+                } catch {}
+              }
+            } // inner while
+          } // outer while
+
+          // Final 'done' event
+          controller.enqueue(
+            encoder.encode(
+              `event: done\ndata: ${JSON.stringify({ content: assistantContent, reasoning: assistantReasoning })}\n\n`
+            )
+          );
+          controller.close();
+
+          // Save assistant message to DB in background
+          supabaseClient
+            .from("messages")
+            .insert({
+              chat_id: origMsg.chat_id,
+              role: "assistant",
+              content: assistantContent,
+              reasoning: assistantReasoning,
+              user_id: null,
+              model: modelToUse,
+            })
+            .then(({ error: insertErr }) => {
+              if (insertErr) {
+                console.error("Failed to save assistant message:", insertErr);
+              }
+            });
+
+        } catch (e) {
+          controller.enqueue(encoder.encode(
+            `event: error\ndata: ${JSON.stringify({ error: e.message || "Unexpected error" })}\n\n`
+          ));
+          controller.close();
+        }
       }
-    } else if (respData.choices?.[0]?.delta) {
-      assistantContent = respData.choices[0].delta.content ?? "";
-      assistantReasoning = respData.choices[0].delta.reasoning ?? "";
-    } else if (respData.choices?.[0]?.content) {
-      assistantContent = respData.choices[0].content ?? "";
-    }
+    });
 
-    // Write directly to 'content' and 'reasoning' columns, not JSONified in content!
-    const { error: insertErr } = await supabaseClient
-      .from("messages")
-      .insert({
-        chat_id: origMsg.chat_id,
-        role: "assistant",
-        content: assistantContent,
-        reasoning: assistantReasoning,
-        user_id: null, // AI-generated message
-        model: modelToUse,
-      });
+    // SSE headers
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+      },
+    });
+    // === STREAMING IMPLEMENTATION END ===
 
-    if (insertErr) {
-      return new Response(JSON.stringify({ error: "Failed to save assistant message: " + insertErr.message }), { status: 500, headers: corsHeaders });
-    }
-
-    return new Response(JSON.stringify({ success: true, assistant: assistantContent, reasoning: assistantReasoning, model: modelToUse }), { headers: corsHeaders });
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message || "Unexpected error" }), { status: 500, headers: corsHeaders });
+    // Fallback error if something went wrong before streaming starts
+    const errMsg = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ error: errMsg || "Unexpected error" }), { status: 500, headers: corsHeaders });
   }
 });
