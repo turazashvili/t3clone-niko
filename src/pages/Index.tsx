@@ -95,12 +95,17 @@ const Index = () => {
       const assistantMsgId = Date.now().toString() + "_assistant";
       setMessages(prev => [...prev, { id: assistantMsgId, role: "assistant", content: "" }]);
 
+      // -- FIXED SECTION: Use access token from local session state, not supabase.auth.session()
+      const fetchHeaders: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (session?.access_token) {
+        fetchHeaders['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/functions/v1/chat-handler', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(supabase.auth.session()?.access_token ? { 'Authorization': `Bearer ${supabase.auth.session()?.access_token}` } : {})
-        },
+        headers: fetchHeaders,
         body: JSON.stringify({
           chatId: currentChatId,
           userMessageContent: userMessage.content,
@@ -138,9 +143,7 @@ const Index = () => {
 
       // When streaming ends, if no chatId, update it and reload full history
       if (!currentChatId) {
-        // Try to get chatId by fetching messages (as a fallback, or update sidebar)
         setSidebarRefreshKey(Date.now());
-        // You could also attempt to fetchChatMessages with a possible new chatId here.
       }
     } catch (err: any) {
       toast({ title: "Error sending message", description: err.message || "Could not connect to chat service.", variant: "destructive" });
