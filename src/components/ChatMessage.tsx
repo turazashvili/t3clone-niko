@@ -45,7 +45,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     currentChatId,
     deleteMessagesAfter,
     editMessage,
-    fetchChatMessages // <-- NEW: We need to refetch chat messages after editing
   } = useChat();
 
   // Add UI editing state
@@ -74,15 +73,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
       setIsEditing(false);
       return;
     }
-    // 1. Update the message and regenerate assistant in the DB/backend (message-edit function)
     const ok = await editMessage(msg.id, editValue.trim());
-    if (!ok) return;
-
-    // 2. Refetch chat messages after edit finishes so local UI is in sync with backend DB
-    if (msg.chat_id) {
-      await fetchChatMessages(msg.chat_id);
-    }
-
     setIsEditing(false);
   };
 

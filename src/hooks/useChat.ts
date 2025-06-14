@@ -6,6 +6,7 @@ import modelsJson from "@/data/models.json";
 import { LLMModel } from "@/types/llm-model";
 import { UploadedFile } from "@/hooks/useFileUpload";
 import { sendMessageStreaming, parseAssistantMessage } from "./useChatStreaming";
+import { useMessagesRealtime } from "./useMessagesRealtime";
 
 export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -57,6 +58,9 @@ export function useChat() {
     return () => subscription.unsubscribe();
     // eslint-disable-next-line
   }, []);
+
+  // === NEW: Attach Realtime chat syncing here ===
+  useMessagesRealtime(currentChatId, setMessages);
 
   // Only for initial chat loading, NOT for sending
   const fetchChatMessages = useCallback(async (chatId: string) => {
