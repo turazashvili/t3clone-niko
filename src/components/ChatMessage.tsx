@@ -5,6 +5,9 @@ import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import js from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
 import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
+import go from "react-syntax-highlighter/dist/esm/languages/prism/go";
+import java from "react-syntax-highlighter/dist/esm/languages/prism/java";
+import ruby from "react-syntax-highlighter/dist/esm/languages/prism/ruby";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { UploadedFile } from "@/hooks/useFileUpload";
 import AttachmentViewerDialog from "./AttachmentViewerDialog";
@@ -15,6 +18,10 @@ import { useChat } from "@/hooks/useChat";
 SyntaxHighlighter.registerLanguage("js", js);
 SyntaxHighlighter.registerLanguage("javascript", js);
 SyntaxHighlighter.registerLanguage("python", python);
+SyntaxHighlighter.registerLanguage("go", go);
+SyntaxHighlighter.registerLanguage("golang", go); // Sometimes code blocks use 'golang'
+SyntaxHighlighter.registerLanguage("java", java);
+SyntaxHighlighter.registerLanguage("ruby", ruby);
 
 interface ChatMessageProps {
   msg: {
