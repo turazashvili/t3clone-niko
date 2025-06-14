@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function useSidebarSync(userId?: string | null) {
   // Local refreshKey to force sidebar update
   const [refreshKey, setRefreshKey] = useState(Date.now());
+  // Use a ref to keep track of the *exact* channel instance for cleanup
   const channelRef = useRef<any>(null);
 
   // Call this whenever you want to force a sidebar refresh
@@ -20,16 +20,18 @@ export function useSidebarSync(userId?: string | null) {
 
   // Setup realtime subscription to chats table, filtered by userId
   useEffect(() => {
-    // Cleanup previous channel if userId changes
+    // Always clean up previous channel instance if any before subscribing a new one
     if (channelRef.current) {
+      // Defensive: remove previous channel before creating a new one
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
     if (!userId) return;
 
+    // Always make a *fresh* channel for each userId
     const channel = supabase
-      .channel("public:chats:sidebar")
+      .channel(`public:chats:sidebar:${userId}:${Date.now()}`) // Unique name per userId/time
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chats", filter: `user_id=eq.${userId}` },
@@ -42,8 +44,10 @@ export function useSidebarSync(userId?: string | null) {
     channelRef.current = channel;
 
     return () => {
-      if (channelRef.current) supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [userId, triggerSidebarRefresh]);
 
