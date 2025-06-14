@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
@@ -48,13 +47,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 
   // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
-    // Remove all messages after this message in both frontend and backend
-    await deleteMessagesAfter(msg.id);
-    // Ensure React state updates are flushed before sending the message.
-    // This avoids race conditions where state is stale for sendMessage.
-    setTimeout(() => {
-      handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
-    }, 0);
+    // Remove all messages after this message in both frontend and backend, then wait for state to update
+    await deleteMessagesAfter(msg.id); // ensures messages are now sliced locally
+    // Now send THIS message's content again (with model override) immediately afterwards
+    // handleSendMessage always works on latest messages, so it's safe
+    await handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
+    // This ensures the new assistant message will start streaming into the UI right after deletion
   };
 
   // Handle Edit: Set input to this message, delete all after (by message id)
@@ -154,4 +152,3 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 };
 
 export default ChatMessage;
-
