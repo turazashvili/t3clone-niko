@@ -59,7 +59,7 @@ export function useChat() {
     // eslint-disable-next-line
   }, []);
 
-  // === NEW: Attach Realtime chat syncing here ===
+  // === NEW: Attach realtime chat syncing here ===
   useMessagesRealtime(currentChatId, setMessages);
 
   // Only for initial chat loading, NOT for sending
@@ -117,7 +117,7 @@ export function useChat() {
     [messages, currentChatId]
   );
 
-  // Add editMessage implementation
+  // Refactored: Streaming editMessage using SSE (mirrors sendMessageStreaming logic)
   const editMessage = useCallback(
     async (msgId: string, newContent: string, modelOverride?: string) => {
       if (!session) {
@@ -126,6 +126,46 @@ export function useChat() {
         return false;
       }
       setIsLoading(true);
+      let assistantMsgId = Date.now().toString() + "_assistantEdit";
+      let streamedContent = ""; // For partial content
+      let streamedReasoning = "";
+      let assistantMsgInserted = false;
+      let editingTargetMsgIndex = -1;
+
+      // Find the last assistant message right after the edited user message (if exists)
+      editingTargetMsgIndex = messages.findIndex(
+        (m, i) =>
+          m.id === msgId &&
+          messages[i + 1] &&
+          messages[i + 1].role === "assistant"
+      );
+      const origAssistant = editingTargetMsgIndex !== -1 ? messages[editingTargetMsgIndex + 1] : null;
+
+      // Optimistically show assistant response regenerating (if existing, blank it; else add blank)
+      setMessages((prev) => {
+        if (origAssistant) {
+          return prev.map((msg, idx) =>
+            idx === editingTargetMsgIndex + 1
+              ? { ...msg, content: "", reasoning: "" }
+              : msg
+          );
+        } else {
+          // If there was no assistant after, optimistically add new placeholder
+          const i = prev.findIndex(m => m.id === msgId);
+          if (i !== -1) {
+            const cp = [...prev];
+            cp.splice(i + 1, 0, {
+              id: assistantMsgId,
+              role: "assistant",
+              content: "",
+              reasoning: "",
+            });
+            return cp;
+          }
+        }
+        return prev;
+      });
+
       try {
         const payload: Record<string, any> = { id: msgId, newContent };
         if (modelOverride) payload.modelOverride = modelOverride;
@@ -135,26 +175,169 @@ export function useChat() {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`
+              "Authorization": `Bearer ${session.access_token}`,
             },
             body: JSON.stringify(payload),
           }
         );
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          toast({ title: "Failed to edit message", description: data.error || "Unknown error", variant: "destructive" });
+        if (!res.ok || !res.body) {
+          const errJson = await res.json();
+          toast({
+            title: "Failed to edit message",
+            description: errJson.error || "Unknown error",
+            variant: "destructive",
+          });
           setIsLoading(false);
           return false;
         }
+
+        // Process SSE response (similar to sendMessageStreaming)
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let done = false;
+
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          if (doneReading) {
+            done = true;
+            continue;
+          }
+          buffer += decoder.decode(value, { stream: true });
+
+          while (true) {
+            const eventEnd = buffer.indexOf("\n\n");
+            if (eventEnd === -1) break;
+            const rawEvent = buffer.slice(0, eventEnd);
+            buffer = buffer.slice(eventEnd + 2);
+
+            let event = "message";
+            let data = "";
+            for (let line of rawEvent.split("\n")) {
+              if (line.startsWith("event:")) event = line.slice(6).trim();
+              else if (line.startsWith("data:")) data += line.slice(5).trim();
+            }
+
+            if (event === "reasoning") {
+              try {
+                const parsed = JSON.parse(data);
+                streamedReasoning = parsed.reasoning || "";
+                setMessages((prev) => {
+                  // Find assistant message after msgId
+                  const idx = prev.findIndex(
+                    (m, i) =>
+                      m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+                  );
+                  if (idx !== -1 && prev[idx + 1]) {
+                    // Update
+                    return prev.map((msg, i2) =>
+                      i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
+                    );
+                  }
+                  // If placeholder not inserted yet, try to find by our generated id
+                  const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+                  if (aIdx !== -1) {
+                    return prev.map((msg, i2) =>
+                      i2 === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
+                    );
+                  }
+                  return prev;
+                });
+              } catch {}
+            } else if (event === "content") {
+              try {
+                const parsed = JSON.parse(data);
+                streamedContent += parsed.content || "";
+                setMessages((prev) => {
+                  // Find assistant message after msgId
+                  const idx = prev.findIndex(
+                    (m, i) =>
+                      m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+                  );
+                  if (idx !== -1 && prev[idx + 1]) {
+                    // Update
+                    return prev.map((msg, i2) =>
+                      i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
+                    );
+                  }
+                  // If placeholder not inserted yet, try to find by our generated id
+                  const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
+                  if (aIdx !== -1) {
+                    return prev.map((msg, i2) =>
+                      i2 === aIdx ? { ...msg, content: streamedContent } : msg
+                    );
+                  }
+                  return prev;
+                });
+              } catch {}
+            } else if (event === "done") {
+              try {
+                const parsed = JSON.parse(data);
+                // Always refetch the full list from DB to avoid dupes or desync
+                // Use the chat_id on the edited message if available
+                const iMsg = messages.find((m) => m.id === msgId);
+                const chatIdToFetch = iMsg?.chat_id || currentChatId;
+                if (chatIdToFetch) {
+                  const { data, error } = await supabase
+                    .from("messages")
+                    .select("id, role, content, created_at, attachments, reasoning, chat_id")
+                    .eq("chat_id", chatIdToFetch)
+                    .order("created_at", { ascending: true });
+                  if (error) {
+                    toast({
+                      title: "Error fetching messages",
+                      description: error.message,
+                      variant: "destructive",
+                    });
+                  } else {
+                    setMessages(() => (data ?? []).map(parseAssistantMessage));
+                  }
+                }
+              } catch {}
+              done = true;
+            } else if (event === "error") {
+              try {
+                const parsed = JSON.parse(data);
+                toast({
+                  title: "Error editing message",
+                  description: parsed.error || "Unknown error from server",
+                  variant: "destructive",
+                });
+                // Remove blanked assistant message if present
+                setMessages((prev) => {
+                  const idx = prev.findIndex((m, i) =>
+                    m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
+                  );
+                  if (idx !== -1 && prev[idx + 1]) {
+                    // Remove assistant message after
+                    const cp = [...prev];
+                    cp.splice(idx + 1, 1);
+                    return cp;
+                  }
+                  return prev.filter((m) => m.id !== assistantMsgId);
+                });
+                done = true;
+              } catch {}
+            }
+          }
+        }
         setIsLoading(false);
         return true;
-      } catch(e: any) {
-        toast({ title: "Failed to edit message", description: e.message, variant: "destructive" });
+      } catch (e: any) {
+        toast({
+          title: "Failed to edit message",
+          description: e?.message || "Error connecting to message-edit service",
+          variant: "destructive",
+        });
         setIsLoading(false);
+        // On error, remove blank/optimistic assistant reply if present
+        setMessages((prev) =>
+          prev.filter((m) => m.id !== assistantMsgId)
+        );
         return false;
       }
     },
-    [session]
+    [session, messages, currentChatId]
   );
 
   // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
