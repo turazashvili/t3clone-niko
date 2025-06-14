@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -13,7 +14,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   created_at?: string;
-  reasoning?: string; // Allow assistant messages to have reasoning
+  reasoning?: string;
 }
 
 const MODEL_LIST = [
@@ -110,10 +111,21 @@ const Index = () => {
     setInputValue("");
     setIsLoading(true);
 
-    // For streaming: maintain an in-progress assistant message
+    // Prepare streaming message "placeholder" object for frontend
+    let assistantMsgId = Date.now().toString() + "_assistant";
     let streamedReasoning = "";
     let streamedContent = "";
-    let assistantMsgId = Date.now().toString() + "_assistant";
+
+    // Add a new "streaming" assistant message right away
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: assistantMsgId,
+        role: "assistant",
+        content: "",
+        reasoning: "",
+      }
+    ]);
 
     try {
       // Streaming fetch!
@@ -133,26 +145,96 @@ const Index = () => {
 
       if (!response.ok) throw new Error(await response.text());
 
-      // Read the JSON at the end as usual, append message once done
-      // (Backend assembles reasoning and content and saves to db)
-      const { assistantResponse, chatId: newChatId } = await response.json();
-      const { content, reasoning } = JSON.parse(assistantResponse);
-      const assistantMessage: Message = {
-        id: assistantMsgId,
-        role: "assistant",
-        content,
-        reasoning,
-      };
-      if (!currentChatId && newChatId) {
-        setCurrentChatId(newChatId);
-        setSidebarRefreshKey(Date.now());
-        await fetchChatMessages(newChatId);
+      // Start streaming/chunking...
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let done = false;
+
+      // Stream logic
+      if (reader) {
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          if (value) {
+            buffer += decoder.decode(value, { stream: true });
+
+            // Handle all complete lines in buffer
+            while (true) {
+              const lineEnd = buffer.indexOf('\n');
+              if (lineEnd === -1) break;
+              const line = buffer.slice(0, lineEnd).trim();
+              buffer = buffer.slice(lineEnd + 1);
+
+              // Only process 'data: ' lines, per OpenRouter/Edge Function
+              if (!line || line.startsWith(":")) continue;
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data === '[DONE]') {
+                  done = true;
+                  break;
+                }
+                try {
+                  // This mirrors edge function logic:
+                  const parsed = JSON.parse(data);
+                  // Streamed fields
+                  if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
+                    streamedReasoning += parsed.choices[0].delta.reasoning;
+                  }
+                  if (parsed.choices?.[0]?.delta?.content !== undefined) {
+                    streamedContent += parsed.choices[0].delta.content;
+                  }
+                  // Update "in progress" message in UI
+                  setMessages(prev =>
+                    prev.map(msg =>
+                      msg.id === assistantMsgId
+                        ? { ...msg, content: streamedContent, reasoning: streamedReasoning }
+                        : msg
+                    )
+                  );
+                } catch {
+                  // Ignore malformed JSON parts.
+                }
+              }
+            }
+          }
+          if (doneReading) break;
+        }
+        // Final update: the stream finished.
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === assistantMsgId
+              ? { ...msg, content: streamedContent, reasoning: streamedReasoning }
+              : msg
+          )
+        );
       } else {
-        setMessages((prevMessages) => [...prevMessages, assistantMessage]);
+        // Fallback: Not a stream (shouldn't happen)
+        const { assistantResponse, chatId: newChatId } = await response.json();
+        const { content, reasoning } = JSON.parse(assistantResponse);
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === assistantMsgId
+              ? { ...msg, content, reasoning }
+              : msg
+          )
+        );
+      }
+
+      // If a new chatId was created, update and fetch latest from db afterwards
+      if (!currentChatId) {
+        // Get chatId from backend's final response (re-fetch the chat messages)
+        try {
+          const body = await response.clone().json();
+          if (body.chatId) {
+            setCurrentChatId(body.chatId);
+            setSidebarRefreshKey(Date.now());
+            await fetchChatMessages(body.chatId);
+          }
+        } catch { /* ignore errors from re-read attempt when already streamed */ }
       }
     } catch (err: any) {
       toast({ title: "Error sending message", description: err.message || "Could not connect to chat service.", variant: "destructive" });
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== assistantMsgId));
     } finally {
       setIsLoading(false);
     }
@@ -229,3 +311,4 @@ const Index = () => {
 };
 
 export default Index;
+
