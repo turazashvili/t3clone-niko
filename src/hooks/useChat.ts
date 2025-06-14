@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -79,6 +78,34 @@ export function useChat() {
     setIsLoading(false);
   }, []);
 
+  // Helper to delete all messages after a certain messageId in the DB and locally
+  const deleteMessagesAfter = useCallback(
+    async (messageId: string) => {
+      // Find the retried message index in state
+      const idx = messages.findIndex(msg => msg.id === messageId);
+      if (idx === -1 || !currentChatId) return;
+
+      // Find messages after idx (to delete in DB)
+      const afterMessages = messages.slice(idx + 1);
+      const afterMsgIds = afterMessages.map(m => m.id);
+
+      // Remove from frontend
+      setMessages(messages.slice(0, idx + 1));
+
+      if (afterMsgIds.length > 0) {
+        // Remove from DB (batched delete)
+        const { error } = await supabase
+          .from("messages")
+          .delete()
+          .in("id", afterMsgIds);
+        if (error) {
+          toast({ title: "Failed to delete previous messages in DB", description: error.message, variant: "destructive" });
+        }
+      }
+    },
+    [messages, currentChatId]
+  );
+
   // NEW streaming handler now uses single DB insert (by edge only)
   // Add inputOverride param: if provided, use as content to send. Otherwise use inputValue (from chat input).
   const handleSendMessage = useCallback(
@@ -150,5 +177,6 @@ export function useChat() {
     handleNewChat,
     loadChat,
     handleSignOut,
+    deleteMessagesAfter, // NEW
   };
 }

@@ -42,11 +42,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     messages,
     selectedModel,
     currentChatId,
+    deleteMessagesAfter,
   } = useChat();
 
   // Handle Retry (modelId: string)
-  const handleRetry = (modelId: string) => {
-    // For user messages: send THIS message's content, not the chat input value
+  const handleRetry = async (modelId: string) => {
+    // Remove all messages after this message in both frontend and backend
+    await deleteMessagesAfter(msg.id);
+    // Send THIS message's content again (with model override)
     handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
   };
 
