@@ -61,6 +61,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 
   // Enhanced handleEdit: open inline editor, allow submit
   const handleEditClick = () => {
+    console.log("Edit button clicked for message:", msg.id);
     setEditValue(msg.content);
     setIsEditing(true);
   };
