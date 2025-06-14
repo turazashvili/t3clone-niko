@@ -77,7 +77,6 @@ serve(async (req: Request) => {
         .insert({ user_id: userId, title: userMessageContent.substring(0, 50) })
         .select('id')
         .single();
-
       if (newChatError) throw newChatError;
       currentChatId = newChat.id;
     } else {
@@ -87,12 +86,11 @@ serve(async (req: Request) => {
         .select('role, content')
         .eq('chat_id', currentChatId)
         .order('created_at', { ascending: true });
-
       if (fetchMessagesError) throw fetchMessagesError;
       conversationHistory = existingMessages.map(msg => ({ role: msg.role, content: msg.content }));
     }
 
-    // 2. Save user's message
+    // 2. Save user message
     const { error: userMessageError } = await supabaseAdmin
       .from('messages')
       .insert({
@@ -122,91 +120,115 @@ serve(async (req: Request) => {
       }
     }
 
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openRouterApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    // Set up streaming SSE to the client
+    const stream = new ReadableStream({
+      async start(controller) {
+        let assistantMessageContent = "";
+        let reasoningContent = "";
+        let firstChunkSent = false;
+        let openRouterError = null;
 
-    if (!openRouterResponse.ok) {
-      const errorData = await openRouterResponse.json();
-      console.error('OpenRouter API error:', errorData);
-      throw new Error(`OpenRouter API error: ${errorData.error?.message || openRouterResponse.statusText}`);
-    }
+        try {
+          const openRouterResp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openRouterApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          });
 
-    // Parse SSE stream for reasoning and message content
-    const decoder = new TextDecoder();
-    const reader = openRouterResponse.body!.getReader();
-    let done = false;
-    let buffer = "";
-    let assistantMessageContent = "";
-    let reasoningContent = "";
-    let inReasoning = false;
-
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      if (value) {
-        buffer += decoder.decode(value, { stream: true });
-        // Extract complete lines
-        while (true) {
-          const lineEnd = buffer.indexOf('\n');
-          if (lineEnd === -1) break;
-          const line = buffer.slice(0, lineEnd).trim();
-          buffer = buffer.slice(lineEnd + 1);
-
-          if (!line || line.startsWith(":")) continue; // ignore comments
-
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6);
-            if (data === '[DONE]') {
-              done = true;
-              break;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              // Reasoning is streamed as .delta.reasoning, content as .delta.content
-              if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
-                inReasoning = true;
-                reasoningContent += parsed.choices[0].delta.reasoning;
-              }
-              if (parsed.choices?.[0]?.delta?.content !== undefined) {
-                inReasoning = false;
-                assistantMessageContent += parsed.choices[0].delta.content;
-              }
-            } catch {
-              // ignore broken/partial JSON
-            }
+          if (!openRouterResp.ok) {
+            openRouterError = await openRouterResp.text();
+            throw new Error(`OpenRouter API error: ${openRouterError}`);
           }
-        }
-      }
-      if (doneReading) done = true;
-    }
 
-    // Store BOTH in a structured JSON string (keeps schema) under content
-    const combinedPayload = JSON.stringify({
-      content: assistantMessageContent,
-      reasoning: reasoningContent,
+          const decoder = new TextDecoder();
+          const reader = openRouterResp.body!.getReader();
+          let buffer = "";
+          let done = false;
+
+          // Steam OpenRouter SSE lines to frontend
+          while (!done) {
+            const { value, done: doneReading } = await reader.read();
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              while (true) {
+                const lineEnd = buffer.indexOf('\n');
+                if (lineEnd === -1) break;
+                const line = buffer.slice(0, lineEnd).trim();
+                buffer = buffer.slice(lineEnd + 1);
+
+                if (!line || line.startsWith(":")) continue;
+
+                if (line.startsWith('data: ')) {
+                  const data = line.substring(6);
+                  if (data === '[DONE]') {
+                    controller.enqueue(`data: [DONE]\n\n`);
+                    done = true;
+                    break;
+                  }
+                  try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
+                      reasoningContent += parsed.choices[0].delta.reasoning;
+                    }
+                    if (parsed.choices?.[0]?.delta?.content !== undefined) {
+                      assistantMessageContent += parsed.choices[0].delta.content;
+                    }
+                    // Flush this chunk as SSE for frontend
+                    // Send payload with both streamed content & reasoning so far
+                    const payload = JSON.stringify({
+                      content: assistantMessageContent,
+                      reasoning: reasoningContent,
+                    });
+                    controller.enqueue(`data: ${payload}\n\n`);
+                    firstChunkSent = true;
+                  } catch {
+                    // ignore parse errors
+                  }
+                }
+              }
+            }
+            if (doneReading) break;
+          }
+
+        } catch (err) {
+          controller.enqueue(`data: {"error": ${JSON.stringify((err as Error).message)}}\n\n`);
+        }
+
+        // After finish, store the FINAL assistant message in DB
+        if (assistantMessageContent || reasoningContent) {
+          const combinedPayload = JSON.stringify({
+            content: assistantMessageContent,
+            reasoning: reasoningContent,
+          });
+          await supabaseAdmin
+            .from('messages')
+            .insert({
+              chat_id: currentChatId,
+              role: 'assistant',
+              content: combinedPayload,
+            });
+        }
+
+        // Finally, inform client of new chatId if this was a new conversation
+        if (!chatId) {
+          const chatIdMsg = JSON.stringify({ chatId: currentChatId });
+          controller.enqueue(`data: ${chatIdMsg}\n\n`);
+        }
+        controller.close();
+      }
     });
 
-    const { error: assistantMessageError } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        chat_id: currentChatId,
-        role: 'assistant',
-        content: combinedPayload, // Store as JSON string
-      });
-    if (assistantMessageError) throw assistantMessageError;
-
-    return new Response(
-      JSON.stringify({
-        assistantResponse: combinedPayload,
-        chatId: currentChatId,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
 
   } catch (error) {
     console.error('Error in chat-handler function:', error);
