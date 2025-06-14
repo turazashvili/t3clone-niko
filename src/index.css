@@ -102,3 +102,33 @@
     min-height: 100vh;
   }
 }
+
+/* ---- GLOBAL SCROLLBAR STYLES ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: #221931;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3d254d;
+  border-radius: 8px;
+  min-height: 32px;
+  border: 2px solid #221931;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9446e5;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #3d254d #221931;
+}
+
+/* You can adjust colors above for more contrast or vibrancy */
