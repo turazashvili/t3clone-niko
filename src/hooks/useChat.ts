@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
@@ -114,6 +113,43 @@ export function useChat() {
     [messages, currentChatId]
   );
 
+  // Add editMessage implementation
+  const editMessage = useCallback(
+    async (msgId: string, newContent: string) => {
+      if (!session) {
+        toast({ title: "Not authenticated", description: "Please log in.", variant: "destructive" });
+        setLoginOpen(true);
+        return false;
+      }
+      setIsLoading(true);
+      try {
+        const res = await fetch(
+          "/functions/v1/message-edit",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({ id: msgId, newContent }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          toast({ title: "Failed to edit message", description: data.error || "Unknown error", variant: "destructive" });
+          setIsLoading(false);
+          return false;
+        }
+        return true;
+      } catch(e: any) {
+        toast({ title: "Failed to edit message", description: e.message, variant: "destructive" });
+        setIsLoading(false);
+        return false;
+      }
+    },
+    [session]
+  );
+
   // REPLACE THE OLD handleSendMessage with this:
   const handleSendMessage = useCallback(
     async (
@@ -199,5 +235,6 @@ export function useChat() {
     loadChat,
     handleSignOut,
     deleteMessagesAfter, // NEW
+    editMessage,
   };
 }
