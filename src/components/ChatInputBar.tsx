@@ -131,43 +131,49 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                   <ChevronDown className="ml-1 w-4 h-4 text-white/70" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="start" className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50 max-h-[330px]">
-                <ScrollArea className="max-h-[310px] p-2 pr-0">
-                  {filteredList.length === 0 && (
-                    <div className="text-center text-sm text-zinc-400 py-8">No models found.</div>
-                  )}
-                  {filteredList.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => {
-                        setSelectedModel(m.id);
-                        setDropdownOpen(false);
-                      }}
-                      className={
-                        `flex items-center gap-3 py-2 px-2 w-full rounded-lg cursor-pointer group border-l-4 transition-all
-                         ${selectedModel === m.id
-                          ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
-                          : "border-transparent hover:bg-[#222032] text-blue-100"}`
-                      }
-                      style={{ minHeight: "40px" }}
-                      tabIndex={0}
-                    >
-                      <span className="flex-1 text-left truncate">{m.name}
-                        {m.top_provider.is_moderated && (
-                          <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" aria-label="Moderated" />
-                        )}
-                      </span>
-                      <div className="flex items-center gap-0.5">
-                        {getModalityIcons(m.architecture.input_modalities)}
-                      </div>
-                      <span className="ml-2 min-w-[45px] text-xs text-blue-300 opacity-60 mr-1">
-                        Ctx: {prettyNum(m.context_length)}
-                      </span>
-                      <span className="min-w-[38px] text-xs text-violet-300 opacity-70">
-                        Max: {prettyNum(m.top_provider.max_completion_tokens)}
-                      </span>
-                    </button>
-                  ))}
+              <PopoverContent
+                align="start"
+                className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50 max-h-[340px] overflow-hidden"
+              >
+                {/* Add a ScrollArea with 320px max height for scrolling inner content */}
+                <ScrollArea className="max-h-[320px]">
+                  <div>
+                    {filteredList.length === 0 && (
+                      <div className="text-center text-sm text-zinc-400 py-8">No models found.</div>
+                    )}
+                    {filteredList.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setSelectedModel(m.id);
+                          setDropdownOpen(false);
+                        }}
+                        className={
+                          `flex items-center gap-3 py-2 px-2 w-full rounded-lg cursor-pointer group border-l-4 transition-all
+                           ${selectedModel === m.id
+                            ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
+                            : "border-transparent hover:bg-[#222032] text-blue-100"}`
+                        }
+                        style={{ minHeight: "40px" }}
+                        tabIndex={0}
+                      >
+                        <span className="flex-1 text-left truncate">{m.name}
+                          {m.top_provider.is_moderated && (
+                            <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" aria-label="Moderated" />
+                          )}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          {getModalityIcons(m.architecture.input_modalities)}
+                        </div>
+                        <span className="ml-2 min-w-[45px] text-xs text-blue-300 opacity-60 mr-1">
+                          Ctx: {prettyNum(m.context_length)}
+                        </span>
+                        <span className="min-w-[38px] text-xs text-violet-300 opacity-70">
+                          Max: {prettyNum(m.top_provider.max_completion_tokens)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </ScrollArea>
               </PopoverContent>
             </Popover>
