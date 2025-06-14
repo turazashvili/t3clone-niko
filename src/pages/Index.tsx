@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -26,6 +25,8 @@ const MODEL_LIST = [
   { label: "Claude Sonnet 4", value: "anthropic/claude-sonnet-4" },
   { label: "DeepSeek R1", value: "deepseek/deepseek-r1-0528" },
 ];
+
+const CHAT_HANDLER_URL = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/chat-handler";
 
 const Index = () => {
   const [loginOpen, setLoginOpen] = useState(false);
@@ -116,7 +117,7 @@ const Index = () => {
 
     try {
       // Streaming fetch!
-      const response = await fetch('/functions/v1/chat-handler', {
+      const response = await fetch(CHAT_HANDLER_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
