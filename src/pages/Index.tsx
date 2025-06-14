@@ -56,7 +56,7 @@ const Index = () => {
           )}
         </div>
         {/* Chat Input Area */}
-        <div className="w-full max-w-3xl mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
+        <div className="w-full mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
           <div className="flex items-center justify-between mb-2">
             <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
           </div>
