@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import QuickActions from "@/components/QuickActions";
@@ -131,6 +130,15 @@ const Index = () => {
     fetchChatMessages(chatId);
   };
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({ title: "Error signing out", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Signed out successfully" });
+    }
+  };
+
   return (
     <div className="flex min-h-screen w-full bg-transparent">
       <Sidebar
@@ -138,6 +146,7 @@ const Index = () => {
         onNewChatClick={handleNewChat}
         onLoadChat={loadChat}
         userId={user?.id}
+        onSignOutClick={handleSignOut}
       />
       <main className="flex-1 flex flex-col min-h-screen relative bg-transparent">
         {messages.length === 0 && !isLoading ? (

@@ -1,5 +1,4 @@
-
-import { LogIn, Plus, Search, MessageSquare, Loader2 } from "lucide-react";
+import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -15,9 +14,10 @@ interface SidebarProps {
   onNewChatClick?: () => void;
   onLoadChat?: (chatId: string) => void;
   userId?: string | null;
+  onSignOutClick?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadChat, userId }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadChat, userId, onSignOutClick }) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
 
@@ -107,8 +107,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
           </div>
         ))}
       </div>
-      {!userId && (
-        <div className="mt-6 mb-1">
+      <div className="mt-auto pt-4 border-t border-[#251c2f]/70">
+        {userId ? (
+          <button
+            className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2 w-full justify-start"
+            type="button"
+            onClick={onSignOutClick}
+          >
+            <LogOut size={20} />
+            Sign Out
+          </button>
+        ) : (
           <button
             className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2 w-full justify-start"
             type="button"
@@ -117,8 +126,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
             <LogIn size={20} />
             Login to Chat
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 };
