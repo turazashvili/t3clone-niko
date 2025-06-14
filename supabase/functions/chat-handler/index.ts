@@ -136,7 +136,7 @@ serve(async (req: Request) => {
       user_id: userId,
       role: 'user',
       content: userMessageContent,
-      model: model, // <----- ADDED
+      model: model,
     };
     // If attachments from client exist, map and add them as metadata for DB
     if (attachedFiles && Array.isArray(attachedFiles) && attachedFiles.length > 0) {
@@ -181,12 +181,19 @@ serve(async (req: Request) => {
     }
     conversationHistory.push({ role: "user", content: messageContent });
 
-    // Prepare OpenRouter API streaming call
+    // --- SYSTEM prompt ENHANCED for markdown ---
     let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
     let body: any = {
       model: modelToUse,
       messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
+        {
+          role: 'system',
+          content:
+            "You are a helpful assistant. All responses must be formatted with proper markdown. " +
+            "ALWAYS use markdown for any lists, code, or inline technical content. " +
+            "When sending code, ALWAYS use markdown code blocks with the correct language (e.g. ```js, ```python, etc). " +
+            "Separate the reasoning (your train of thought, step-by-step technical breakdown) from the main answer if possible.",
+        },
         ...conversationHistory,
       ],
       stream: true,
@@ -238,23 +245,21 @@ serve(async (req: Request) => {
             const reader = openRouterResponse.body!.getReader();
             let done = false;
             let buffer = "";
-            let inReasoning = false;
 
-            // Send event for the new chatId (to sync on frontend if this is a new chat)
+            // Send event for the new chatId
             controller.enqueue(encoder.encode(`event: chatId\ndata: ${currentChatId}\n\n`));
 
             while (!done) {
               const { value, done: doneReading } = await reader.read();
               if (value) {
                 buffer += decoder.decode(value, { stream: true });
-                // Process complete lines
                 while (true) {
                   const lineEnd = buffer.indexOf('\n');
                   if (lineEnd === -1) break;
                   const line = buffer.slice(0, lineEnd).trim();
                   buffer = buffer.slice(lineEnd + 1);
 
-                  if (!line || line.startsWith(":")) continue; // ignore comments
+                  if (!line || line.startsWith(":")) continue;
 
                   if (line.startsWith('data: ')) {
                     const data = line.substring(6);
@@ -264,21 +269,16 @@ serve(async (req: Request) => {
                     }
                     try {
                       const parsed = JSON.parse(data);
-                      // Reasoning is streamed as .delta.reasoning, content as .delta.content
                       if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
-                        inReasoning = true;
                         reasoningContent += parsed.choices[0].delta.reasoning;
-                        // You may choose to stream intermediate reasoning updates separately
                         controller.enqueue(encoder.encode(`event: reasoning\ndata: ${JSON.stringify({ reasoning: reasoningContent })}\n\n`));
                       }
                       if (parsed.choices?.[0]?.delta?.content !== undefined) {
-                        inReasoning = false;
                         assistantMessageContent += parsed.choices[0].delta.content;
-                        // Stream content as it comes in
                         controller.enqueue(encoder.encode(`event: content\ndata: ${JSON.stringify({ content: parsed.choices[0].delta.content })}\n\n`));
                       }
                     } catch {
-                      // ignore JSON parse errors on partial data
+                      // ignore JSON parse errors
                     }
                   }
                 }
@@ -287,22 +287,25 @@ serve(async (req: Request) => {
             }
 
             // After all streaming is done, signal completion with a combined payload
-            const combinedPayload = JSON.stringify({
-              content: assistantMessageContent,
-              reasoning: reasoningContent,
-            });
-
-            controller.enqueue(encoder.encode(`event: done\ndata: ${combinedPayload}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: done\ndata: ${JSON.stringify({
+                  content: assistantMessageContent,
+                  reasoning: reasoningContent,
+                })}\n\n`
+              )
+            );
             controller.close();
 
-            // Persist to DB in the background (does not block user experience)
+            // Persist to DB in the background—now saving content and reasoning in separate columns!
             supabaseAdmin
               .from('messages')
               .insert({
                 chat_id: currentChatId,
                 role: 'assistant',
-                content: combinedPayload,
-                model: body.model, // <----- ADDED
+                content: assistantMessageContent,
+                reasoning: reasoningContent,
+                model: body.model,
               })
               .then(({ error }) => {
                 if (error) console.error('DB error saving assistant message:', error);

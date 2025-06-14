@@ -2,10 +2,19 @@ import React, { useState } from "react";
 import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import ReactMarkdown from "react-markdown";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import js from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
+import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
+import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { UploadedFile } from "@/hooks/useFileUpload";
 import AttachmentViewerDialog from "./AttachmentViewerDialog";
 import MessageActionsBar from "./MessageActionsBar";
 import { useChat } from "@/hooks/useChat";
+
+// Register languages we'll use regularly (more can be added)
+SyntaxHighlighter.registerLanguage("js", js);
+SyntaxHighlighter.registerLanguage("javascript", js);
+SyntaxHighlighter.registerLanguage("python", python);
 
 interface ChatMessageProps {
   msg: {
@@ -101,7 +110,30 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="text-xs bg-[#181638]/60 rounded p-2">
-                <ReactMarkdown>{msg.reasoning}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    code({ node, inline, className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      return !inline && match ? (
+                        <SyntaxHighlighter
+                          style={atomDark}
+                          language={match[1]}
+                          PreTag="div"
+                          className="rounded-lg"
+                          {...props}
+                        >
+                          {String(children).replace(/\n$/, "")}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {msg.reasoning}
+                </ReactMarkdown>
               </CollapsibleContent>
             </Collapsible>
           )}
@@ -124,7 +156,30 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
           ) : (
             <>
               <p className="whitespace-pre-wrap text-base">
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    code({ node, inline, className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      return !inline && match ? (
+                        <SyntaxHighlighter
+                          style={atomDark}
+                          language={match[1]}
+                          PreTag="div"
+                          className="rounded-lg"
+                          {...props}
+                        >
+                          {String(children).replace(/\n$/, "")}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
               </p>
               {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-3 items-center">

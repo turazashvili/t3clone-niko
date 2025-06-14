@@ -5,16 +5,9 @@ import { Message } from "@/hooks/useChat";
 
 const CHAT_HANDLER_URL = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/chat-handler";
 
-// Helper: parse assistant messages (copy from useChat)
+// Helper: parse assistant messages
 const parseAssistantMessage = (msg: any) => {
-  if (msg.role === "assistant") {
-    try {
-      const { content, reasoning } = JSON.parse(msg.content);
-      return { ...msg, content, reasoning };
-    } catch {
-      return { ...msg, content: msg.content, reasoning: undefined };
-    }
-  }
+  // No longer parse msg.content as JSON. Just use as plain text.
   let attachedFiles: UploadedFile[] = [];
   if (msg.attachments && Array.isArray(msg.attachments)) {
     attachedFiles = msg.attachments.map((f: any) => ({
@@ -24,7 +17,12 @@ const parseAssistantMessage = (msg: any) => {
       originalFile: undefined,
     }));
   }
-  return { ...msg, attachedFiles };
+  return {
+    ...msg,
+    content: msg.content,
+    reasoning: msg.reasoning, // just use directly
+    attachedFiles,
+  };
 };
 
 // Streaming function
@@ -174,14 +172,14 @@ export async function sendMessageStreaming({
             if (chatToFetch) {
               const fetchData = await supabase
                 .from('messages')
-                .select('id, role, content, created_at, attachments')
+                .select('id, role, content, created_at, attachments, reasoning')
                 .eq('chat_id', chatToFetch)
                 .order('created_at', { ascending: true });
 
               if (fetchData.error) {
                 toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
               } else {
-                setMessages(() => 
+                setMessages(() =>
                   (fetchData.data ?? []).map(parseAssistantMessage)
                 );
               }
@@ -192,7 +190,7 @@ export async function sendMessageStreaming({
           try {
             const parsed = JSON.parse(data);
             toast({ title: "Error", description: parsed.error || "Unknown error from server", variant: "destructive" });
-            setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
+            setMessages((prev) => prev.filter((m) => m.id !== userMessage.id && m.id !== assistantMsgId));
             done = true;
           } catch {}
         }
