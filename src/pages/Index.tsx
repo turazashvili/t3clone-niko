@@ -36,6 +36,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState<number>(0);
   const [selectedModel, setSelectedModel] = useState(MODEL_LIST[0].value);
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -72,7 +73,7 @@ const Index = () => {
     setIsLoading(false);
   };
 
-  const handleSendMessage = async (modelOverride?: string) => {
+  const handleSendMessage = async (modelOverride?: string, webSearch?: boolean) => {
     if (!inputValue.trim()) return;
     if (!user) {
       toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
@@ -96,6 +97,7 @@ const Index = () => {
           userMessageContent: userMessage.content,
           userId: user.id,
           model: modelOverride || selectedModel,
+          webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         },
       });
 
@@ -170,6 +172,8 @@ const Index = () => {
             user={user}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
+            webSearchEnabled={webSearchEnabled}
+            setWebSearchEnabled={setWebSearchEnabled}
           />
           <div className="text-xs text-white/40 mt-2 text-center">
             Make sure you agree to our <a href="#" className="underline hover:text-accent">Terms</a> and <a href="#" className="underline hover:text-accent">Privacy Policy</a>

@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from "react";
 import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
@@ -8,7 +7,7 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, Switch } from "@/components/ui/button";
 
 const MODEL_LIST = [
   { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro-preview" },
@@ -23,12 +22,14 @@ const MODEL_LIST = [
 interface ChatInputBarProps {
   inputValue: string;
   setInputValue: (v: string) => void;
-  onSend: (model: string) => void;
+  onSend: (model: string, webSearchEnabled: boolean) => void;
   isLoading?: boolean;
   disabled?: boolean;
   user?: any;
   selectedModel: string;
   setSelectedModel: (m: string) => void;
+  webSearchEnabled: boolean;
+  setWebSearchEnabled: (enabled: boolean) => void;
 }
 
 const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -39,16 +40,17 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   disabled,
   user,
   selectedModel,
-  setSelectedModel
+  setSelectedModel,
+  webSearchEnabled,
+  setWebSearchEnabled
 }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [searchEnabled, setSearchEnabled] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (inputValue.trim() && !isLoading && user) onSend(selectedModel);
+    if (inputValue.trim() && !isLoading && user) onSend(selectedModel, webSearchEnabled);
   };
 
   return (
@@ -125,19 +127,15 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
               </DropdownMenuContent>
             </DropdownMenu>
             {/* Search toggle */}
-            <button
-              type="button"
-              aria-label="Toggle search"
-              className={cn(
-                "ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-transparent transition-colors",
-                searchEnabled
-                  ? "bg-blue-700/70 text-blue-100 shadow ring-1 ring-blue-400"
-                  : "bg-transparent text-zinc-300 hover:bg-blue-900/20"
-              )}
-              onClick={() => setSearchEnabled((v) => !v)}
-            >
-              <Globe className="h-5 w-5" />
-            </button>
+            <div className="ml-2 flex items-center gap-2 select-none">
+              <Globe className="h-5 w-5 text-blue-200" />
+              <span className="text-xs text-white/80">Web Search</span>
+              <Switch
+                aria-label="Toggle web search"
+                checked={webSearchEnabled}
+                onCheckedChange={setWebSearchEnabled}
+              />
+            </div>
             {/* File attachment */}
             <button
               type="button"

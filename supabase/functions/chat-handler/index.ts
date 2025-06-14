@@ -33,7 +33,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { chatId, userMessageContent, userId, model } = await req.json();
+    const { chatId, userMessageContent, userId, model, webSearchEnabled } = await req.json();
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
@@ -105,21 +105,30 @@ serve(async (req: Request) => {
 
     conversationHistory.push({ role: 'user', content: userMessageContent });
 
-    // 3. Call OpenRouter API using the selected model, fallback if invalid
+    // 3. Call OpenRouter API using the selected model, with possible web search:
     let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
+    let body: any = {
+      model: modelToUse,
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        ...conversationHistory,
+      ],
+    };
+    if (webSearchEnabled) {
+      // Prefer model:slug:online method if available
+      if (typeof modelToUse === "string" && !modelToUse.endsWith(":online")) {
+        body.model = modelToUse + ":online";
+      }
+      // If not supported, could use plugins fallback:
+      // body.plugins = [{ id: "web" }];
+    }
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openRouterApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: modelToUse,
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
-          ...conversationHistory,
-        ],
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!openRouterResponse.ok) {
