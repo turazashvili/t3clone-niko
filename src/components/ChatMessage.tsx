@@ -70,9 +70,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
     console.log("handleRetry called", { modelId, msg, currentChatId });
-    await deleteMessagesAfter(msg.id);
-    // Instead of using currentChatId (which may be null), use msg.chat_id if available
-    await handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content, msg.chat_id);
+
+    // Remove messages after this user message IMMEDIATELY on UI
+    const idx = messages.findIndex(m => m.id === msg.id);
+    if (idx !== -1) {
+      setMessages(messages.slice(0, idx + 1));
+    }
+
+    // Call editMessage with only a modelOverride! This will also trigger backend to clear trailing messages
+    await editMessage(msg.id, msg.content, modelId);
+    // No need to handle optimistic assistant placeholder: realtime sync will add new assistant message when available
   };
 
   // Enhanced handleEdit: open inline editor, allow submit
