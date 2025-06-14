@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
@@ -103,29 +104,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   // Cancel edit
   const handleEditCancel = () => setIsEditing(false);
 
+  // --- CHANGES HERE: Always render assistant bubbles, show loading state if content is empty + role is assistant ---
   return (
     <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-      {/* 
-        Widen assistant responses to max-w-3xl centered.
-        Make user responses only as wide as the text (max-w-fit), right-aligned.
-      */}
       <div
         className={
           msg.role === "user"
-            ? // User: bubble only as wide as content, right-aligned
-              "w-full flex justify-end"
-            : // Assistant: full width in container
-              "w-full flex justify-start"
+            ? "w-full flex justify-end"
+            : "w-full flex justify-start"
         }
       >
         <div
           className={
             msg.role === "user"
               ? [
-                  // Make bubble only as wide as needed, up to a sensible max
                   "max-w-fit",
                   "self-end",
-                  "px-4", // still some horizontal padding
+                  "px-4",
                   "p-3",
                   "rounded-xl",
                   "flex",
@@ -138,7 +133,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   "rounded-br-none",
                 ].join(" ")
               : [
-                  // Assistant: same as before, wide bubble
                   "w-full",
                   "max-w-3xl",
                   "mx-auto",
@@ -225,40 +219,45 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
             ) : (
               <>
                 <div className="w-full">
-                  <ReactMarkdown
-                    components={{
-                      p: (props) => (
-                        <p className="my-1 leading-relaxed" {...props} />
-                      ),
-                      hr: (props) => (
-                        <hr className="my-3 border-white/10" {...props} />
-                      ),
-                      code({node, className, children, ...props}) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        // @ts-ignore
-                        if (!props.inline && match) {
+                  {/* Always render the message bubble, even if content is empty (shows loading shimmer for assistant) */}
+                  {msg.role === "assistant" && msg.content === "" ? (
+                    <div className="text-white/60 italic animate-pulse py-2">Thinking...</div>
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: (props) => (
+                          <p className="my-1 leading-relaxed" {...props} />
+                        ),
+                        hr: (props) => (
+                          <hr className="my-3 border-white/10" {...props} />
+                        ),
+                        code({node, className, children, ...props}) {
+                          const match = /language-(\w+)/.exec(className || "");
+                          // @ts-ignore
+                          if (!props.inline && match) {
+                            return (
+                              <SyntaxHighlighter
+                                style={atomDark}
+                                language={match[1]}
+                                PreTag="div"
+                                className="my-2 rounded-lg text-sm"
+                                {...props}
+                              >
+                                {String(children).replace(/\n$/, "")}
+                              </SyntaxHighlighter>
+                            );
+                          }
                           return (
-                            <SyntaxHighlighter
-                              style={atomDark}
-                              language={match[1]}
-                              PreTag="div"
-                              className="my-2 rounded-lg text-sm"
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
+                            <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
+                              {children}
+                            </code>
                           );
                         }
-                        return (
-                          <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
                 </div>
                 {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-3 items-center">
