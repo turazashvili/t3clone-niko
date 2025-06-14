@@ -1,5 +1,6 @@
 
 import { LogIn, Plus, Search } from "lucide-react";
+import React from "react";
 
 const recentChats = [
   { id: 1, title: "How does AI work?" },
@@ -8,7 +9,11 @@ const recentChats = [
   { id: 4, title: "What is the meaning of life?" },
 ];
 
-const Sidebar = () => (
+interface SidebarProps {
+  onLoginClick?: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ onLoginClick }) => (
   <aside className="flex flex-col h-screen w-[290px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5">
     {/* Brand */}
     <div className="flex items-center gap-2 mb-6 select-none">
@@ -48,7 +53,11 @@ const Sidebar = () => (
     </div>
     {/* Bottom Login Button */}
     <div className="mt-6 mb-1">
-      <button className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2">
+      <button
+        className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2"
+        type="button"
+        onClick={onLoginClick}
+      >
         <LogIn size={20} /> 
         Login
       </button>

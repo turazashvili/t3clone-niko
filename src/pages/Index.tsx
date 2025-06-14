@@ -1,13 +1,17 @@
 
+import React, { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import QuickActions from "@/components/QuickActions";
 import SuggestedQuestions from "@/components/SuggestedQuestions";
+import LoginModal from "@/components/LoginModal";
 
 const Index = () => {
+  const [loginOpen, setLoginOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen w-full bg-transparent">
       {/* Left Sidebar */}
-      <Sidebar />
+      <Sidebar onLoginClick={() => setLoginOpen(true)} />
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col items-center min-h-screen justify-between relative bg-transparent">
         <div className="flex-1 flex flex-col items-center justify-start pt-24">
@@ -37,6 +41,7 @@ const Index = () => {
           </div>
         </div>
       </main>
+      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
     </div>
   );
 };
