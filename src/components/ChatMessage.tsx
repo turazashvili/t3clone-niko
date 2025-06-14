@@ -45,6 +45,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     currentChatId,
     deleteMessagesAfter,
     editMessage,
+    redoAfterEdit,
   } = useChat();
 
   // Add UI editing state
@@ -77,12 +78,20 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     const ok = await editMessage(msg.id, editValue.trim());
     if (!ok) return;
 
-    // 2. Delete messages after this one
-    await deleteMessagesAfter(msg.id);
+    // 2. Optimistically remove all following messages from UI so user sees linear chat
+    const idx = messages.findIndex(m => m.id === msg.id);
+    if (idx !== -1) {
+      setMessages(messages.slice(0, idx + 1));
+    }
 
-    // 3. Re-run handleSendMessage for this message (simulate as if just sent)
-    // We pass in same model, webSearch/attachments, override text
-    await handleSendMessage(selectedModel, undefined, msg.attachedFiles, editValue.trim(), msg.chat_id);
+    // 3. Redo after edit: handle all logic (chain, calling LLM, etc.)
+    await redoAfterEdit({
+      msgId: msg.id,
+      newContent: editValue.trim(),
+      attachedFiles: msg.attachedFiles,
+      modelOverride: selectedModel,
+      chat_id: msg.chat_id,
+    });
 
     setIsEditing(false);
   };
