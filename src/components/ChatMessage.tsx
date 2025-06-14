@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
@@ -49,8 +50,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   const handleRetry = async (modelId: string) => {
     // Remove all messages after this message in both frontend and backend
     await deleteMessagesAfter(msg.id);
-    // Send THIS message's content again (with model override)
-    handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
+    // Ensure React state updates are flushed before sending the message.
+    // This avoids race conditions where state is stale for sendMessage.
+    setTimeout(() => {
+      handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
+    }, 0);
   };
 
   // Handle Edit: Set input to this message, delete all after (by message id)
@@ -59,10 +63,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     const msgIdx = messages.findIndex((m) => m.id === msg.id);
     if (msgIdx === -1) return;
     setMessages(messages.slice(0, msgIdx + 1));
-    // Place message content into input
-    // Needs setInputValue from useChat
     if (typeof window !== "undefined" && window.dispatchEvent) {
-      // Custom event for setInputValue and focusing input
       window.dispatchEvent(new CustomEvent("chat-edit-message", { detail: msg.content }));
     }
   };
@@ -153,3 +154,4 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 };
 
 export default ChatMessage;
+
