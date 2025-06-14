@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import QuickActions from "@/components/QuickActions";
-import SuggestedQuestions from "@/components/SuggestedQuestions";
 import LoginModal from "@/components/LoginModal";
 import ChatInputBar from "@/components/ChatInputBar";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
-import { Send, Bot, User as UserIcon, Loader2 } from "lucide-react";
+import ChatArea from "./ChatArea";
+import EmptyState from "./EmptyState";
 
 interface Message {
   id: string;
@@ -25,7 +25,6 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState<number>(0);
 
   useEffect(() => {
@@ -39,19 +38,11 @@ const Index = () => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) {
-        handleNewChat();
-      }
+      if (!session) handleNewChat();
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   const fetchChatMessages = async (chatId: string) => {
     if (!chatId) return;
@@ -149,35 +140,13 @@ const Index = () => {
         onLoadChat={loadChat}
         userId={user?.id}
         onSignOutClick={handleSignOut}
-        triggerRefresh={sidebarRefreshKey} // pass refresh key
+        triggerRefresh={sidebarRefreshKey}
       />
       <main className="flex-1 flex flex-col min-h-screen relative bg-transparent">
         {messages.length === 0 && !isLoading ? (
-          <div className="flex-1 flex flex-col items-center justify-start pt-24">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
-              How can I help you?
-            </h1>
-            {/* Remove onQuestionClick prop if not supported */}
-            <QuickActions />
-            <SuggestedQuestions />
-          </div>
+          <EmptyState />
         ) : (
-          <div className="flex-1 overflow-y-auto pt-8 pb-24 px-4 md:px-6 lg:px-8 space-y-4">
-            {messages.map((msg, index) => (
-              <div key={msg.id || index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xl p-3 rounded-xl flex items-start gap-2 ${
-                  msg.role === 'user' 
-                    ? 'bg-accent text-white rounded-br-none' 
-                    : 'bg-[#271d37] text-white/90 rounded-bl-none'
-                }`}>
-                  {msg.role === 'assistant' && <Bot size={20} className="text-white/70 mt-0.5 shrink-0" />}
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                  {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
+          <ChatArea messages={messages} isLoading={isLoading} />
         )}
         {/* Chat Input Area */}
         <div className="w-full max-w-3xl mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
@@ -194,7 +163,16 @@ const Index = () => {
           </div>
         </div>
       </main>
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} afterLogin={() => supabase.auth.getSession().then(({data}) => { setUser(data.session?.user ?? null); setSession(data.session); })} />
+      <LoginModal
+        open={loginOpen}
+        onOpenChange={setLoginOpen}
+        afterLogin={() =>
+          supabase.auth.getSession().then(({ data }) => {
+            setUser(data.session?.user ?? null);
+            setSession(data.session);
+          })
+        }
+      />
     </div>
   );
 };
