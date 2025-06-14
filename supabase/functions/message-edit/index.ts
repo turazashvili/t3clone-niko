@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-import "https://deno.land/x/xhr@0.1.0/mod.ts"; // For OpenAI API fetch
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,13 +11,7 @@ const corsHeaders = {
 
 // CHANGE THIS AS DESIRED!
 const DEFAULT_ASSISTANT_MODEL = "openai/gpt-4o-mini";
-const OPENAI_MODEL_ID_MAP: Record<string, string> = {
-  "openai/gpt-4o-mini": "gpt-4o-mini",
-  "openai/gpt-4o": "gpt-4o",
-  // Add other model mappings if extended
-};
-
-const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -26,7 +20,6 @@ serve(async (req) => {
 
   try {
     const { id, newContent } = await req.json();
-
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -43,7 +36,7 @@ serve(async (req) => {
     // Verify message ownership
     const { data: origMsg, error: getError } = await supabaseClient
       .from("messages")
-      .select("id, user_id, role, chat_id")
+      .select("id, user_id, role, chat_id, model")
       .eq("id", id)
       .maybeSingle();
 
@@ -77,32 +70,10 @@ serve(async (req) => {
         .gt("created_at", thisMsgFull.created_at);
     }
 
-    // Find the previous model used for the assistant's reply
-    let prevModel = DEFAULT_ASSISTANT_MODEL;
+    // Get model from original user message, fallback to default if missing
+    let prevModel = origMsg.model ?? DEFAULT_ASSISTANT_MODEL;
 
-    // Find the immediate next assistant message after this one (to get prior model)
-    const { data: nextAssistantMsg } = await supabaseClient
-      .from("messages")
-      .select("id, model, created_at, role")
-      .eq("chat_id", origMsg.chat_id)
-      .gt("created_at", thisMsgFull?.created_at)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (nextAssistantMsg?.model && nextAssistantMsg.role === "assistant") {
-      prevModel = nextAssistantMsg.model;
-    }
-
-    // Generate new assistant response via LLM (OpenAI for now)
-    if (!openAIApiKey) {
-      return new Response(JSON.stringify({ error: "OPENAI_API_KEY not set in function environment." }), { status: 500, headers: corsHeaders });
-    }
-
-    // Map system model id to OpenAI model id
-    const openaiModelId = OPENAI_MODEL_ID_MAP[prevModel] || "gpt-4o-mini";
-
-    // Grab last 4 user+assistant turns in this chat for history (before the edit)
+    // Gather prior messages (up to 8, as before)
     const { data: priorMessages } = await supabaseClient
       .from("messages")
       .select("role, content, created_at")
@@ -111,10 +82,9 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(8);
 
-    // Compose context for OpenAI
-    const systemPrompt = "You are a helpful AI assistant.";
-    const openaiMessages = [
-      { role: "system", content: systemPrompt },
+    // Compose OpenRouter messages (system, then history, then user)
+    const openrouterMessages = [
+      { role: "system", content: "You are a helpful AI assistant." },
       ...(priorMessages ?? []).map((m: any) => ({
         role: m.role,
         content: m.content,
@@ -122,35 +92,70 @@ serve(async (req) => {
       { role: "user", content: newContent }
     ];
 
-    const openaiCall = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Call OpenRouter
+    if (!OPENROUTER_API_KEY) {
+      return new Response(JSON.stringify({ error: "OPENROUTER_API_KEY not set in function environment." }), { status: 500, headers: corsHeaders });
+    }
+
+    const openrouterCall = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${openAIApiKey}`,
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: openaiModelId,
-        messages: openaiMessages,
+        model: prevModel,
+        messages: openrouterMessages,
         stream: false,
+        reasoning: { effort: "high" }
       }),
     });
 
-    if (!openaiCall.ok) {
-      let err = "OpenAI request error";
-      try { err = await openaiCall.text(); } catch { /* ignore */ }
+    if (!openrouterCall.ok) {
+      let err = "OpenRouter request error";
+      try { 
+        const errObj = await openrouterCall.json(); 
+        err = errObj?.error?.message || JSON.stringify(errObj); 
+      } catch { 
+        try { err = await openrouterCall.text(); } catch {}
+      }
       return new Response(JSON.stringify({ error: err }), { status: 500, headers: corsHeaders });
     }
 
-    const respData = await openaiCall.json();
-    const assistantContent = respData.choices?.[0]?.message?.content ?? "";
+    const respData = await openrouterCall.json();
 
-    // Store assistant message in DB
+    let assistantContent = "";
+    let assistantReasoning = "";
+
+    // Some OpenRouter models may respond with just .choices[], some with .choices[].message.content, etc.
+    if (respData.choices?.[0]?.message) {
+      // Try new content/reasoning if present, else just .content
+      const msg = respData.choices[0].message;
+      if (typeof msg == "object") {
+        assistantContent = msg.content ?? "";
+        // If reasoning is present
+        if ('reasoning' in msg) assistantReasoning = msg.reasoning ?? "";
+      } else {
+        assistantContent = msg;
+      }
+    } else if (respData.choices?.[0]?.delta) {
+      assistantContent = respData.choices[0].delta.content ?? "";
+      assistantReasoning = respData.choices[0].delta.reasoning ?? "";
+    } else if (respData.choices?.[0]?.content) {
+      assistantContent = respData.choices[0].content ?? "";
+    }
+
+    // Match the chat-handler format: store a JSON string if reasoning present
+    let dbContent = (assistantReasoning !== "")
+      ? JSON.stringify({ content: assistantContent, reasoning: assistantReasoning })
+      : assistantContent;
+
     const { error: insertErr } = await supabaseClient
       .from("messages")
       .insert({
         chat_id: origMsg.chat_id,
         role: "assistant",
-        content: assistantContent,
+        content: dbContent,
         user_id: null, // AI-generated message
         model: prevModel,
       });
@@ -159,8 +164,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Failed to save assistant message: " + insertErr.message }), { status: 500, headers: corsHeaders });
     }
 
-    // Success: return new assistant content & model used
-    return new Response(JSON.stringify({ success: true, assistant: assistantContent, model: prevModel }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true, assistant: assistantContent, reasoning: assistantReasoning, model: prevModel }), { headers: corsHeaders });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message || "Unexpected error" }), { status: 500, headers: corsHeaders });
   }
