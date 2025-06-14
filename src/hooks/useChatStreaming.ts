@@ -150,8 +150,8 @@ export async function sendMessageStreaming({
             setMessages(() =>
               (fetchData.data ?? []).map(parseAssistantMessage)
             );
-            // --- REFRESH SIDEBAR AFTER FIRST MESSAGE ARRIVED (and DB is up-to-date) ---
-            if (onFirstMessageDone) onFirstMessageDone();
+           // --- REFRESH SIDEBAR AFTER FIRST MESSAGE ARRIVED (and DB is up-to-date) ---
+           if (onFirstMessageDone) onFirstMessageDone();
           }
         }
       },

@@ -1,9 +1,9 @@
-
 import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useSidebarSync } from "@/hooks/useSidebarSync";
 
 interface Chat {
   id: string;
@@ -33,9 +33,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
   const navigate = useNavigate();
-
+  // === Use custom sidebar sync hook ===
+  const { refreshKey: sidebarRefreshKey } = useSidebarSync(userId);
+  
+  // Fetch chats on refreshKey change (sync engine OR manual)
   useEffect(() => {
-    const fetchRecentChats = async () => {
+    async function fetchRecentChats() {
       if (!userId) {
         setRecentChats([]);
         return;
@@ -47,7 +50,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(10);
-
       if (error) {
         toast({ title: "Error fetching chats", description: error.message, variant: "destructive" });
         setRecentChats([]);
@@ -55,27 +57,10 @@ const Sidebar: React.FC<SidebarProps> = ({
         setRecentChats((data ?? []) as Chat[]);
       }
       setLoadingChats(false);
-    };
-
+    }
     fetchRecentChats();
-
-    // Listen for realtime changes to 'chats'
-    const channel = supabase
-      .channel('public:chats')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'chats', filter: `user_id=eq.${userId}` },
-        () => {
-          fetchRecentChats();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, triggerRefresh]);
-
+  }, [userId, sidebarRefreshKey, triggerRefresh]);
+  
   return (
     <aside
       className={`fixed left-0 top-0 z-30 h-screen w-[${SIDEBAR_WIDTH}px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5 flex flex-col`}
