@@ -92,15 +92,24 @@ serve(async (req: Request) => {
       conversationHistory = existingMessages.map(msg => ({ role: msg.role, content: msg.content }));
     }
 
-    // Save user's message to DB right away
+    // Save user's message to DB right away, with attachments if present
+    const userMsgInsertPayload: any = {
+      chat_id: currentChatId,
+      user_id: userId,
+      role: 'user',
+      content: userMessageContent,
+    };
+    // If attachments from client exist, map and add them as metadata for DB
+    if (attachedFiles && Array.isArray(attachedFiles) && attachedFiles.length > 0) {
+      userMsgInsertPayload.attachments = attachedFiles.map((f: any) => ({
+        name: f.name,
+        type: f.type,
+        url: f.url,
+      }));
+    }
     const { error: userMessageError } = await supabaseAdmin
       .from('messages')
-      .insert({
-        chat_id: currentChatId,
-        user_id: userId,
-        role: 'user',
-        content: userMessageContent,
-      });
+      .insert(userMsgInsertPayload);
     if (userMessageError) throw userMessageError;
 
     // Add to conversation history
