@@ -1,3 +1,5 @@
+
+// Only import useEffect once (with React)
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -11,7 +13,7 @@ import { UploadedFile } from "@/hooks/useFileUpload";
 import { Copy } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+// Removed duplicate: import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 // Keep this in sync with Sidebar width!
