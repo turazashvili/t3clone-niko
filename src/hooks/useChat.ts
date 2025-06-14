@@ -248,22 +248,20 @@ export function useChat() {
                   )
                 );
 
-                if (!currentChatId && streamingNewChatId) {
-                  setCurrentChatId(streamingNewChatId);
-                  setSidebarRefreshKey(Date.now());
-                } else if (currentChatId) {
-                  // For existing chats, fetch – but do not replace messages if fetch returns empty!
+                // Always refetch from DB and replace all messages with source of truth (prevents duplication)
+                const chatToFetch = streamingNewChatId || currentChatId;
+                if (chatToFetch) {
                   const fetchData = await supabase
                     .from('messages')
                     .select('id, role, content, created_at, attachments')
-                    .eq('chat_id', currentChatId)
+                    .eq('chat_id', chatToFetch)
                     .order('created_at', { ascending: true });
 
                   if (fetchData.error) {
                     toast({ title: "Error fetching messages", description: fetchData.error.message, variant: "destructive" });
-                  } else if ((fetchData.data ?? []).length > 0) {
+                  } else {
                     setMessages(
-                      fetchData.data.map(parseAssistantMessage)
+                      (fetchData.data ?? []).map(parseAssistantMessage)
                     );
                   }
                 }
