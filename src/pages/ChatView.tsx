@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -66,15 +67,26 @@ const ChatView = () => {
         onSignOutClick={handleSignOut}
         triggerRefresh={sidebarRefreshKey}
       />
+      {/* Floating share button corner container */}
+      <div
+        className="fixed z-30 top-2 right-4 md:right-12 flex items-center gap-2"
+        style={{
+          // Height/width set for nice floating button area (matches screenshot)
+          // Adjust right/spacing for where your controls are!
+          pointerEvents: "none", // so only button is interactive, not whole div
+        }}
+      >
+        <ShareChatButton chatId={chatId} />
+      </div>
       <main
         className="flex flex-col min-h-screen"
         style={{ marginLeft: SIDEBAR_WIDTH }}
       >
         <div className="flex-1 flex flex-col min-h-0">
+          {/* Remove old share button position */}
           <div className="flex items-center justify-between pt-4 pb-2 max-w-3xl mx-auto px-4">
             <div />
-            {/* Only show if this is a valid chatId */}
-            <ShareChatButton chatId={chatId} />
+            {/* ShareChatButton removed from here */}
           </div>
           {messages.length === 0 && !isLoading ? (
             <EmptyState />
@@ -111,3 +123,4 @@ const ChatView = () => {
 };
 
 export default ChatView;
+
