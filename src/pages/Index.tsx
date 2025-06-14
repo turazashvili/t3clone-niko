@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { Send, Bot, User as UserIcon, Loader2 } from "lucide-react";
 
 interface Message {
-  id: string; // Or number, depending on your DB
+  id: string;
   role: "user" | "assistant";
   content: string;
   created_at?: string;
@@ -33,16 +33,18 @@ const Index = () => {
       setUser(session?.user ?? null);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) { // If logged out, clear chat
+      if (!session) {
         handleNewChat();
       }
     });
 
     return () => {
-      authListener?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -63,7 +65,7 @@ const Index = () => {
       toast({ title: "Error fetching messages", description: error.message, variant: "destructive" });
       setMessages([]);
     } else {
-      setMessages(data as Message[]);
+      setMessages((data ?? []) as Message[]);
     }
     setIsLoading(false);
   };
@@ -77,7 +79,7 @@ const Index = () => {
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(), // Temporary ID
+      id: Date.now().toString(),
       role: "user",
       content: inputValue,
     };
@@ -100,24 +102,18 @@ const Index = () => {
       if (!currentChatId && newChatId) {
         setCurrentChatId(newChatId);
       }
-      
-      // Fetch all messages to ensure sync after new chat creation or if IDs are important
-      // Alternatively, just add the assistant response if IDs are not critical for immediate display.
-      // For robustness, let's refetch if it's a new chat, otherwise append.
       if (!currentChatId && newChatId) {
         await fetchChatMessages(newChatId);
       } else {
-         const assistantMessage: Message = {
-            id: Date.now().toString() + "_assistant", // Temporary ID
-            role: "assistant",
-            content: assistantResponse,
-         };
-         setMessages((prevMessages) => [...prevMessages, assistantMessage]);
+        const assistantMessage: Message = {
+          id: Date.now().toString() + "_assistant",
+          role: "assistant",
+          content: assistantResponse,
+        };
+        setMessages((prevMessages) => [...prevMessages, assistantMessage]);
       }
-
     } catch (err: any) {
       toast({ title: "Error sending message", description: err.message || "Could not connect to chat service.", variant: "destructive" });
-      // Optionally remove the optimistically added user message or mark as failed
       setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
     } finally {
       setIsLoading(false);
@@ -129,9 +125,7 @@ const Index = () => {
     setMessages([]);
     setInputValue("");
   };
-  
-  // Function to be passed to Sidebar to load a specific chat
-  // This will be enhanced later when recent chats are dynamic
+
   const loadChat = (chatId: string) => {
     setCurrentChatId(chatId);
     fetchChatMessages(chatId);
@@ -139,10 +133,10 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen w-full bg-transparent">
-      <Sidebar 
-        onLoginClick={() => setLoginOpen(true)} 
+      <Sidebar
+        onLoginClick={() => setLoginOpen(true)}
         onNewChatClick={handleNewChat}
-        onLoadChat={loadChat} // Pass loadChat to Sidebar
+        onLoadChat={loadChat}
         userId={user?.id}
       />
       <main className="flex-1 flex flex-col min-h-screen relative bg-transparent">
@@ -151,16 +145,9 @@ const Index = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 tracking-tight">
               How can I help you?
             </h1>
-            <QuickActions onQuestionClick={(q) => {
-              if (!user) { setLoginOpen(true); return; }
-              setInputValue(q);
-              setTimeout(handleSendMessage, 0); // Send message after input is set
-            }} />
-            <SuggestedQuestions onQuestionClick={(q) => {
-              if (!user) { setLoginOpen(true); return; }
-              setInputValue(q);
-              setTimeout(handleSendMessage, 0);
-            }} />
+            {/* Remove onQuestionClick prop if not supported */}
+            <QuickActions />
+            <SuggestedQuestions />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto pt-8 pb-24 px-4 md:px-6 lg:px-8 space-y-4">
@@ -180,7 +167,6 @@ const Index = () => {
             <div ref={messagesEndRef} />
           </div>
         )}
-
         {/* Chat Input Area */}
         <div className="w-full max-w-3xl mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
           <div className="rounded-2xl bg-[#1a1625] border border-[#271d37] mt-4 flex items-center text-white px-4 py-2 shadow-inner">
