@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import modelsJson from "@/data/models.json";
-import { Eye, Globe, FileText, ImageIcon, File as LucideFile, Plus, Chip, Lock } from "lucide-react";
+import { Eye, Globe, FileText, ImageIcon, File as LucideFile, Plus, Lock } from "lucide-react";
 import { LLMModel } from "@/types/llm-model";
 
 interface ModelSelectorProps {
@@ -10,14 +10,16 @@ interface ModelSelectorProps {
 }
 
 const iconsByModality: Record<string, React.ReactNode> = {
-  text: <Eye className="h-5 w-5" title="Text" />,
-  image: <ImageIcon className="h-5 w-5" title="Image" />,
-  file: <FileText className="h-5 w-5" title="File" />,
+  text: <Eye className="h-5 w-5" aria-label="Text" />,
+  image: <ImageIcon className="h-5 w-5" aria-label="Image" />,
+  file: <FileText className="h-5 w-5" aria-label="File" />,
 };
 
 function getModalityIcons(inputs: string[]) {
   return inputs.map((m) => (
-    <span key={m} className="inline-block mr-1 text-green-300 opacity-80">{iconsByModality[m] || <Chip className="h-5 w-5" title={m} />}</span>
+    <span key={m} className="inline-block mr-1 text-green-300 opacity-80">
+      {iconsByModality[m] || <LucideFile className="h-5 w-5" aria-label={m} />}
+    </span>
   ));
 }
 
@@ -65,7 +67,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, setSelecte
             {/* Model Name */}
             <span className="flex-1">
               {m.name}
-              {m.top_provider.is_moderated && <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" title="Moderated" />}
+              {m.top_provider.is_moderated && <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" aria-label="Moderated" />}
             </span>
             {/* Capabilities */}
             <div className="flex items-center gap-0.5">
