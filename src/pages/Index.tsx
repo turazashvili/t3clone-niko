@@ -103,17 +103,21 @@ const Index = () => {
         fetchHeaders['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const response = await fetch('/functions/v1/chat-handler', {
-        method: 'POST',
-        headers: fetchHeaders,
-        body: JSON.stringify({
-          chatId: currentChatId,
-          userMessageContent: userMessage.content,
-          userId: user.id,
-          model: modelOverride || selectedModel,
-          webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
-        }),
-      });
+      // --- FIX: Call Supabase Edge Function (correct full URL, not relative path)
+      const response = await fetch(
+        'https://tahxsobdcnbbqqonkhup.functions.supabase.co/chat-handler',
+        {
+          method: 'POST',
+          headers: fetchHeaders,
+          body: JSON.stringify({
+            chatId: currentChatId,
+            userMessageContent: userMessage.content,
+            userId: user.id,
+            model: modelOverride || selectedModel,
+            webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
+          }),
+        }
+      );
 
       if (!response.body || !response.ok) {
         // Get error message if available
