@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "./useChat";
@@ -43,7 +42,8 @@ export function useMessagesRealtime(
               );
             }
             if (payload.eventType === "DELETE") {
-              // Remove the message.
+              // Instead of blindly filtering by ID, remove all local messages that do not exist in the DB after deletes.
+              // But since we don't have full state, fallback to by ID as before.
               return messages.filter(m => m.id !== payload.old.id);
             }
             return messages;
@@ -57,4 +57,3 @@ export function useMessagesRealtime(
     };
   }, [chatId, setMessages]);
 }
-
