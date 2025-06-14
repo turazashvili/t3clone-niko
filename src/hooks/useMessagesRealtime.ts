@@ -23,15 +23,24 @@ export function useMessagesRealtime(
             if (payload.eventType === "INSERT") {
               // If the message doesn't exist, add to messages.
               if (!messages.some(m => m.id === payload.new.id)) {
-                return [...messages, payload.new].sort((a,b) =>
-                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                return [
+                  ...messages,
+                  payload.new as Message, // safely cast
+                ].sort(
+                  (a, b) =>
+                    new Date(a.created_at || "").getTime() -
+                    new Date(b.created_at || "").getTime()
                 );
               }
               return messages;
             }
             if (payload.eventType === "UPDATE") {
               // Replace the message with updated one.
-              return messages.map(m => (m.id === payload.new.id ? { ...m, ...payload.new } : m));
+              return messages.map(m =>
+                m.id === payload.new.id
+                  ? { ...m, ...(payload.new as Message) }
+                  : m
+              );
             }
             if (payload.eventType === "DELETE") {
               // Remove the message.
