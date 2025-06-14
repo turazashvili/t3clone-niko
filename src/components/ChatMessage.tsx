@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
@@ -131,13 +130,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                 <CollapsibleContent className="text-xs bg-[#181638]/60 rounded p-2">
                   <ReactMarkdown
                     components={{
-                      p: ({ node, ...props }) => (
+                      p: (props) => (
                         <p className="my-1 leading-relaxed" {...props} />
                       ),
-                      hr: ({ node, ...props }) => (
+                      hr: (props) => (
                         <hr className="my-3 border-white/10" {...props} />
                       ),
-                      code({ node, inline, className, children, ...props }) {
+                      code({node, inline, className, children, ...props}) {
                         const match = /language-(\w+)/.exec(className || "");
                         if (!inline && match) {
                           return (
@@ -186,13 +185,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                 <div className="w-full">
                   <ReactMarkdown
                     components={{
-                      p: ({ node, ...props }) => (
+                      p: (props) => (
                         <p className="my-1 leading-relaxed" {...props} />
                       ),
-                      hr: ({ node, ...props }) => (
+                      hr: (props) => (
                         <hr className="my-3 border-white/10" {...props} />
                       ),
-                      code({ node, inline, className, children, ...props }) {
+                      code({node, inline, className, children, ...props}) {
                         const match = /language-(\w+)/.exec(className || "");
                         if (!inline && match) {
                           return (
@@ -278,4 +277,3 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 };
 
 export default ChatMessage;
-
