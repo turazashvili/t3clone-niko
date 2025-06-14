@@ -1,0 +1,171 @@
+
+import React, { useRef, useState } from "react";
+import { ChevronDown, ArrowUp, Search, Paperclip, Globe } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+
+// Model options demo (expand as needed)
+const MODEL_LIST = [
+  { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
+  { label: "Claude 4 Sonnet", value: "claude-4-sonnet" },
+  { label: "o4-mini", value: "o4-mini" }
+];
+
+interface ChatInputBarProps {
+  inputValue: string;
+  setInputValue: (v: string) => void;
+  onSend: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+  user?: any;
+}
+
+const ChatInputBar: React.FC<ChatInputBarProps> = ({
+  inputValue,
+  setInputValue,
+  onSend,
+  isLoading,
+  disabled,
+  user
+}) => {
+  const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(MODEL_LIST[0]);
+  const [searchEnabled, setSearchEnabled] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleSend = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (inputValue.trim() && !isLoading && user) onSend();
+  };
+
+  return (
+    <div className="pointer-events-auto bg-[#1a1625]/90 rounded-t-2xl border border-[#2b2741] shadow-2xl max-w-3xl mx-auto p-3 pb-2 backdrop-blur-lg">
+      <form
+        className="flex flex-col gap-2 w-full"
+        onSubmit={handleSend}
+        autoComplete="off"
+      >
+        {/* Textarea + actions row */}
+        <div className="flex flex-row items-end gap-3 w-full">
+          <textarea
+            className="w-full resize-none bg-transparent text-base leading-6 text-white outline-none placeholder:text-white/50 px-1 py-1 min-h-[48px] scrollbar-none"
+            placeholder="Type your message here..."
+            value={inputValue}
+            disabled={isLoading || disabled || !user}
+            rows={1}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault(); handleSend();
+              }
+            }}
+            aria-label="Message input"
+          />
+
+          {/* Send button */}
+          <Button
+            type="submit"
+            className={cn(
+              "rounded-lg bg-pink-700/90 shadow font-semibold hover:bg-pink-600/90 w-10 h-10 p-0 flex items-center justify-center transition-colors",
+              (!inputValue.trim() || isLoading || disabled || !user) && `opacity-60 cursor-not-allowed`
+            )}
+            disabled={!inputValue.trim() || isLoading || disabled || !user}
+            aria-label="Send message"
+            variant="ghost"
+          >
+            <ArrowUp className="size-5 text-pink-50" />
+          </Button>
+        </div>
+        {/* Model/file/search row */}
+        <div className="flex items-center justify-between px-1">
+          {/* Model select & file/search */}
+          <div className="flex items-center gap-0.5">
+            {/* Model selector */}
+            <DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center text-sm bg-transparent font-medium hover:bg-white/10 rounded-md px-2 py-1.5 gap-2 text-white transition border-none focus-visible:ring-1 focus-visible:ring-accent"
+                >
+                  <span>{selectedModel.label}</span>
+                  <ChevronDown className="ml-1 w-4 h-4 text-white/70" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="z-[60] min-w-[180px] bg-[#201732] text-white border-[#433A60] rounded-xl shadow-xl py-1 px-0">
+                {MODEL_LIST.map((m) => (
+                  <DropdownMenuItem
+                    key={m.value}
+                    onSelect={() => {
+                      setSelectedModel(m);
+                      setDropdownOpen(false);
+                    }}
+                    className={cn(
+                      "cursor-pointer px-4 py-2 hover:bg-pink-900/30 rounded-lg text-base",
+                      m.value === selectedModel.value ? "font-semibold bg-pink-800/15" : ""
+                    )}
+                  >
+                    {m.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Search toggle */}
+            <button
+              type="button"
+              aria-label="Toggle search"
+              className={cn(
+                "ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-transparent transition-colors",
+                searchEnabled
+                  ? "bg-blue-700/70 text-blue-100 shadow ring-1 ring-blue-400"
+                  : "bg-transparent text-zinc-300 hover:bg-blue-900/20"
+              )}
+              onClick={() => setSearchEnabled((v) => !v)}
+            >
+              <Globe className="h-5 w-5" />
+            </button>
+            {/* File attachment */}
+            <button
+              type="button"
+              aria-label="Attach file"
+              className="ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-transparent text-zinc-300 hover:bg-white/10 transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="h-5 w-5" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setFile(e.target.files[0]);
+                  }
+                }}
+              />
+            </button>
+            {file && (
+              <span className="ml-2 text-xs text-white/70 truncate max-w-[120px]">
+                {file.name}
+              </span>
+            )}
+          </div>
+          {/* Info for not logged in */}
+          {!user && (
+            <span className="ml-auto text-xs text-amber-300/80 pr-3">
+              Please log in to chat.
+            </span>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default ChatInputBar;

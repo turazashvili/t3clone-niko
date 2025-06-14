@@ -3,6 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import QuickActions from "@/components/QuickActions";
 import SuggestedQuestions from "@/components/SuggestedQuestions";
 import LoginModal from "@/components/LoginModal";
+import ChatInputBar from "@/components/ChatInputBar";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
@@ -180,28 +181,14 @@ const Index = () => {
         )}
         {/* Chat Input Area */}
         <div className="w-full max-w-3xl mx-auto px-4 pb-6 sticky bottom-0 bg-transparent pt-2">
-          <div className="rounded-2xl bg-[#1a1625] border border-[#271d37] mt-4 flex items-center text-white px-4 py-2 shadow-inner">
-            <input
-              className="bg-transparent grow outline-none text-lg text-white placeholder:text-white/40"
-              placeholder="Type your message here..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
-              disabled={isLoading || !user}
-            />
-            <button
-              className="ml-3 bg-accent text-white rounded-xl p-3 hover:bg-accent-dark transition disabled:opacity-70 disabled:cursor-not-allowed"
-              onClick={handleSendMessage}
-              disabled={isLoading || !inputValue.trim() || !user}
-            >
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-            </button>
-          </div>
-          {!user && (
-            <p className="text-xs text-center text-amber-400 mt-2">
-              Please <button onClick={() => setLoginOpen(true)} className="underline hover:text-amber-200">login</button> to chat.
-            </p>
-          )}
+          <ChatInputBar
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            onSend={handleSendMessage}
+            isLoading={isLoading}
+            disabled={!user}
+            user={user}
+          />
           <div className="text-xs text-white/40 mt-2 text-center">
             Make sure you agree to our <a href="#" className="underline hover:text-accent">Terms</a> and <a href="#" className="underline hover:text-accent">Privacy Policy</a>
           </div>
