@@ -124,8 +124,9 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                   className="flex items-center text-sm bg-transparent font-medium hover:bg-white/10 rounded-md px-2 py-1.5 gap-2 text-white transition border-none focus-visible:ring-1 focus-visible:ring-accent"
                   onClick={() => setDropdownOpen(!isDropdownOpen)}
                   aria-label="Select model"
+                  style={{ minWidth: 0 }}
                 >
-                  <span className="truncate max-w-[120px]">
+                  <span className="truncate max-w-[180px]">
                     {currentModel.name}
                   </span>
                   <ChevronDown className="ml-1 w-4 h-4 text-white/70" />
@@ -133,7 +134,7 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
               </PopoverTrigger>
               <PopoverContent
                 align="start"
-                className="p-0 w-[340px] sm:w-[380px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50"
+                className="p-0 w-[420px] sm:w-[480px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50"
                 style={{ overflow: "visible" }}
               >
                 {/* ScrollArea shows all models and is the only scrollable area */}
@@ -150,12 +151,12 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                           setDropdownOpen(false);
                         }}
                         className={
-                          `flex items-center gap-3 py-2 px-2 w-full rounded-lg cursor-pointer group border-l-4 transition-all
+                          `flex items-center gap-3 py-2 px-3 w-full rounded-lg cursor-pointer group border-l-4 transition-all
                            ${selectedModel === m.id
                             ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
                             : "border-transparent hover:bg-[#222032] text-blue-100"}`
                         }
-                        style={{ minHeight: "40px" }}
+                        style={{ minHeight: "44px" }}
                         tabIndex={0}
                       >
                         <span className="flex-1 text-left truncate">{m.name}
@@ -166,12 +167,6 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                         <div className="flex items-center gap-0.5">
                           {getModalityIcons(m.architecture.input_modalities)}
                         </div>
-                        <span className="ml-2 min-w-[45px] text-xs text-blue-300 opacity-60 mr-1">
-                          Ctx: {prettyNum(m.context_length)}
-                        </span>
-                        <span className="min-w-[38px] text-xs text-violet-300 opacity-70">
-                          Max: {prettyNum(m.top_provider.max_completion_tokens)}
-                        </span>
                       </button>
                     ))}
                   </div>
