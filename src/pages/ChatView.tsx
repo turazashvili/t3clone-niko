@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -39,6 +38,9 @@ const ChatView = () => {
     handleSignOut,
   } = useChat();
 
+  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
+  const [isPublic, setIsPublic] = useState<boolean | undefined>(undefined);
+
   // Set current chat by chatId from URL
   useEffect(() => {
     if (chatId && chatId !== currentChatId) {
@@ -48,7 +50,34 @@ const ChatView = () => {
     // eslint-disable-next-line
   }, [chatId]);
 
-  const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
+  // Fetch is_public for the chat
+  useEffect(() => {
+    let ignore = false; // Prevent state update after unmount
+    const fetchIsPublic = async () => {
+      if (!chatId) {
+        setIsPublic(undefined);
+        return;
+      }
+      // Import supabase client
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data, error } = await supabase
+        .from("chats")
+        .select("is_public")
+        .eq("id", chatId)
+        .maybeSingle();
+      if (!ignore) {
+        if (error || !data) {
+          setIsPublic(undefined);
+        } else {
+          setIsPublic(data.is_public ?? false);
+        }
+      }
+    };
+    fetchIsPublic();
+    return () => {
+      ignore = true;
+    };
+  }, [chatId]);
 
   const handleSend = (model: string, webSearchEnabled: boolean) => {
     handleSendMessage(model, webSearchEnabled, attachedFiles);
@@ -76,7 +105,7 @@ const ChatView = () => {
           pointerEvents: "none", // so only button is interactive, not whole div
         }}
       >
-        <ShareChatButton chatId={chatId} />
+        <ShareChatButton chatId={chatId} isPublic={isPublic} />
       </div>
       <main
         className="flex flex-col min-h-screen"
@@ -123,4 +152,3 @@ const ChatView = () => {
 };
 
 export default ChatView;
-
