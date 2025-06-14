@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Image as ImageIcon, File as FileIcon, X } from "lucide-react";
+import { Image as ImageIcon, File as FileIcon } from "lucide-react";
 
 interface AttachmentViewerDialogProps {
   open: boolean;
@@ -25,13 +25,7 @@ const AttachmentViewerDialog: React.FC<AttachmentViewerDialogProps> = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-xl flex flex-col items-center justify-center">
-        <button
-          className="absolute top-3 right-3 p-1 rounded-full hover:bg-muted transition"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
+        {/* Removed custom close button. Only the built-in Dialog close "X" will show. */}
         {isImageType(file.type) ? (
           <>
             <img
@@ -64,3 +58,4 @@ const AttachmentViewerDialog: React.FC<AttachmentViewerDialogProps> = ({
 };
 
 export default AttachmentViewerDialog;
+
