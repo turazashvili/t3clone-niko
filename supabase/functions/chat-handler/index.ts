@@ -105,7 +105,7 @@ serve(async (req: Request) => {
 
     conversationHistory.push({ role: 'user', content: userMessageContent });
 
-    // 3. Call OpenRouter API using the selected model, with possible web search:
+    // 3. Prepare OpenRouter API streaming call
     let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
     let body: any = {
       model: modelToUse,
@@ -113,15 +113,15 @@ serve(async (req: Request) => {
         { role: 'system', content: 'You are a helpful assistant.' },
         ...conversationHistory,
       ],
+      stream: true,
+      reasoning: { effort: "high" },
     };
     if (webSearchEnabled) {
-      // Prefer model:slug:online method if available
       if (typeof modelToUse === "string" && !modelToUse.endsWith(":online")) {
         body.model = modelToUse + ":online";
       }
-      // If not supported, could use plugins fallback:
-      // body.plugins = [{ id: "web" }];
     }
+
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -137,26 +137,76 @@ serve(async (req: Request) => {
       throw new Error(`OpenRouter API error: ${errorData.error?.message || openRouterResponse.statusText}`);
     }
 
-    const openRouterData = await openRouterResponse.json();
-    const assistantMessageContent = openRouterData.choices[0]?.message?.content;
+    // Parse SSE stream for reasoning and message content
+    const decoder = new TextDecoder();
+    const reader = openRouterResponse.body!.getReader();
+    let done = false;
+    let buffer = "";
+    let assistantMessageContent = "";
+    let reasoningContent = "";
+    let inReasoning = false;
 
-    if (!assistantMessageContent) {
-      throw new Error('No content in OpenRouter response');
+    while (!done) {
+      const { value, done: doneReading } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+        // Extract complete lines
+        while (true) {
+          const lineEnd = buffer.indexOf('\n');
+          if (lineEnd === -1) break;
+          const line = buffer.slice(0, lineEnd).trim();
+          buffer = buffer.slice(lineEnd + 1);
+
+          if (!line || line.startsWith(":")) continue; // ignore comments
+
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6);
+            if (data === '[DONE]') {
+              done = true;
+              break;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              // Reasoning is streamed as .delta.reasoning, content as .delta.content
+              if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
+                inReasoning = true;
+                reasoningContent += parsed.choices[0].delta.reasoning;
+              }
+              if (parsed.choices?.[0]?.delta?.content !== undefined) {
+                inReasoning = false;
+                assistantMessageContent += parsed.choices[0].delta.content;
+              }
+            } catch {
+              // ignore broken/partial JSON
+            }
+          }
+        }
+      }
+      if (doneReading) done = true;
     }
 
-    // 4. Save assistant's response
+    // Store BOTH in a structured JSON string (keeps schema) under content
+    const combinedPayload = JSON.stringify({
+      content: assistantMessageContent,
+      reasoning: reasoningContent,
+    });
+
     const { error: assistantMessageError } = await supabaseAdmin
       .from('messages')
       .insert({
         chat_id: currentChatId,
         role: 'assistant',
-        content: assistantMessageContent,
+        content: combinedPayload, // Store as JSON string
       });
     if (assistantMessageError) throw assistantMessageError;
 
-    return new Response(JSON.stringify({ assistantResponse: assistantMessageContent, chatId: currentChatId }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        assistantResponse: combinedPayload,
+        chatId: currentChatId,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Error in chat-handler function:', error);

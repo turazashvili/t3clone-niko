@@ -55,6 +55,20 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Update: parse assistant `content` JSON if present
+  const parseAssistantMessage = (msg: any) => {
+    if (msg.role === "assistant") {
+      try {
+        const { content, reasoning } = JSON.parse(msg.content);
+        return { ...msg, content, reasoning };
+      } catch {
+        // fallback to plain content
+        return { ...msg, content: msg.content, reasoning: undefined };
+      }
+    }
+    return msg;
+  };
+
   const fetchChatMessages = async (chatId: string) => {
     if (!chatId) return;
     setIsLoading(true);
@@ -68,11 +82,14 @@ const Index = () => {
       toast({ title: "Error fetching messages", description: error.message, variant: "destructive" });
       setMessages([]);
     } else {
-      setMessages((data ?? []) as Message[]);
+      setMessages(
+        (data ?? []).map(parseAssistantMessage)
+      );
     }
     setIsLoading(false);
   };
 
+  // Streaming handler:
   const handleSendMessage = async (modelOverride?: string, webSearch?: boolean) => {
     if (!inputValue.trim()) return;
     if (!user) {
@@ -90,30 +107,44 @@ const Index = () => {
     setInputValue("");
     setIsLoading(true);
 
+    // For streaming: maintain an in-progress assistant message
+    let streamedReasoning = "";
+    let streamedContent = "";
+    let assistantMsgId = Date.now().toString() + "_assistant";
+
     try {
-      const { data, error } = await supabase.functions.invoke('chat-handler', {
-        body: {
+      // Streaming fetch!
+      const response = await fetch('/functions/v1/chat-handler', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           chatId: currentChatId,
           userMessageContent: userMessage.content,
           userId: user.id,
           model: modelOverride || selectedModel,
           webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
-        },
+        }),
       });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(await response.text());
 
-      const { assistantResponse, chatId: newChatId } = data;
+      // Read the JSON at the end as usual, append message once done
+      // (Backend assembles reasoning and content and saves to db)
+      const { assistantResponse, chatId: newChatId } = await response.json();
+      const { content, reasoning } = JSON.parse(assistantResponse);
+      const assistantMessage: Message = {
+        id: assistantMsgId,
+        role: "assistant",
+        content,
+        reasoning,
+      };
       if (!currentChatId && newChatId) {
         setCurrentChatId(newChatId);
-        setSidebarRefreshKey(Date.now()); // Trigger Sidebar refresh when creating a new chat!
+        setSidebarRefreshKey(Date.now());
         await fetchChatMessages(newChatId);
       } else {
-        const assistantMessage: Message = {
-          id: Date.now().toString() + "_assistant",
-          role: "assistant",
-          content: assistantResponse,
-        };
         setMessages((prevMessages) => [...prevMessages, assistantMessage]);
       }
     } catch (err: any) {
