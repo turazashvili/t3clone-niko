@@ -3,9 +3,19 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import "https://deno.land/x/xhr@0.1.0/mod.ts"; // Required for Supabase client
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Use service role for DB operations
+
+const ALLOWED_MODELS = [
+  "google/gemini-2.5-pro-preview",
+  "openai/o4-mini",
+  "openai/gpt-4.1",
+  "openai/o1-pro",
+  "anthropic/claude-opus-4",
+  "anthropic/claude-sonnet-4",
+  "deepseek/deepseek-r1-0528",
+];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,7 +28,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { chatId, userMessageContent, userId } = await req.json();
+    const { chatId, userMessageContent, userId, model } = await req.json();
 
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
@@ -32,7 +42,7 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!openAIApiKey || !supabaseUrl || !supabaseServiceRoleKey) {
+    if (!openRouterApiKey || !supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing environment variables in Edge Function");
       return new Response(JSON.stringify({ error: 'Server configuration error' }), {
         status: 500,
@@ -80,15 +90,16 @@ serve(async (req: Request) => {
 
     conversationHistory.push({ role: 'user', content: userMessageContent });
 
-    // 3. Call OpenAI API
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // 3. Call OpenRouter API using the selected model, fallback if invalid
+    let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
+    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${openRouterApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: modelToUse,
         messages: [
           { role: 'system', content: 'You are a helpful assistant.' },
           ...conversationHistory,
@@ -96,17 +107,17 @@ serve(async (req: Request) => {
       }),
     });
 
-    if (!openAIResponse.ok) {
-      const errorData = await openAIResponse.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || openAIResponse.statusText}`);
+    if (!openRouterResponse.ok) {
+      const errorData = await openRouterResponse.json();
+      console.error('OpenRouter API error:', errorData);
+      throw new Error(`OpenRouter API error: ${errorData.error?.message || openRouterResponse.statusText}`);
     }
 
-    const openAIData = await openAIResponse.json();
-    const assistantMessageContent = openAIData.choices[0]?.message?.content;
+    const openRouterData = await openRouterResponse.json();
+    const assistantMessageContent = openRouterData.choices[0]?.message?.content;
 
     if (!assistantMessageContent) {
-      throw new Error('No content in OpenAI response');
+      throw new Error('No content in OpenRouter response');
     }
 
     // 4. Save assistant's response

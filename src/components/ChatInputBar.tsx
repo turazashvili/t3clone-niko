@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from "react";
-import { ChevronDown, ArrowUp, Search, Paperclip, Globe } from "lucide-react";
+import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -8,23 +8,27 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 
-// Model options demo (expand as needed)
 const MODEL_LIST = [
-  { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
-  { label: "Claude 4 Sonnet", value: "claude-4-sonnet" },
-  { label: "o4-mini", value: "o4-mini" }
+  { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro-preview" },
+  { label: "GPT-4o Mini", value: "openai/o4-mini" },
+  { label: "GPT-4.1", value: "openai/gpt-4.1" },
+  { label: "OpenAI o1 Pro", value: "openai/o1-pro" },
+  { label: "Claude Opus 4", value: "anthropic/claude-opus-4" },
+  { label: "Claude Sonnet 4", value: "anthropic/claude-sonnet-4" },
+  { label: "DeepSeek R1", value: "deepseek/deepseek-r1-0528" },
 ];
 
 interface ChatInputBarProps {
   inputValue: string;
   setInputValue: (v: string) => void;
-  onSend: () => void;
+  onSend: (model: string) => void;
   isLoading?: boolean;
   disabled?: boolean;
   user?: any;
+  selectedModel: string;
+  setSelectedModel: (m: string) => void;
 }
 
 const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -33,17 +37,18 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onSend,
   isLoading,
   disabled,
-  user
+  user,
+  selectedModel,
+  setSelectedModel
 }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(MODEL_LIST[0]);
   const [searchEnabled, setSearchEnabled] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (inputValue.trim() && !isLoading && user) onSend();
+    if (inputValue.trim() && !isLoading && user) onSend(selectedModel);
   };
 
   return (
@@ -86,7 +91,6 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
         </div>
         {/* Model/file/search row */}
         <div className="flex items-center justify-between px-1">
-          {/* Model select & file/search */}
           <div className="flex items-center gap-0.5">
             {/* Model selector */}
             <DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
@@ -95,7 +99,10 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                   type="button"
                   className="flex items-center text-sm bg-transparent font-medium hover:bg-white/10 rounded-md px-2 py-1.5 gap-2 text-white transition border-none focus-visible:ring-1 focus-visible:ring-accent"
                 >
-                  <span>{selectedModel.label}</span>
+                  <span>
+                    {MODEL_LIST.find(m => m.value === selectedModel)?.label ||
+                      MODEL_LIST[0].label}
+                  </span>
                   <ChevronDown className="ml-1 w-4 h-4 text-white/70" />
                 </button>
               </DropdownMenuTrigger>
@@ -104,12 +111,12 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                   <DropdownMenuItem
                     key={m.value}
                     onSelect={() => {
-                      setSelectedModel(m);
+                      setSelectedModel(m.value);
                       setDropdownOpen(false);
                     }}
                     className={cn(
                       "cursor-pointer px-4 py-2 hover:bg-pink-900/30 rounded-lg text-base",
-                      m.value === selectedModel.value ? "font-semibold bg-pink-800/15" : ""
+                      m.value === selectedModel ? "font-semibold bg-pink-800/15" : ""
                     )}
                   >
                     {m.label}

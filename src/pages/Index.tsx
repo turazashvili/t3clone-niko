@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -16,6 +15,16 @@ interface Message {
   created_at?: string;
 }
 
+const MODEL_LIST = [
+  { label: "Gemini 2.5 Pro", value: "google/gemini-2.5-pro-preview" },
+  { label: "GPT-4o Mini", value: "openai/o4-mini" },
+  { label: "GPT-4.1", value: "openai/gpt-4.1" },
+  { label: "OpenAI o1 Pro", value: "openai/o1-pro" },
+  { label: "Claude Opus 4", value: "anthropic/claude-opus-4" },
+  { label: "Claude Sonnet 4", value: "anthropic/claude-sonnet-4" },
+  { label: "DeepSeek R1", value: "deepseek/deepseek-r1-0528" },
+];
+
 const Index = () => {
   const [loginOpen, setLoginOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -26,6 +35,7 @@ const Index = () => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState<number>(0);
+  const [selectedModel, setSelectedModel] = useState(MODEL_LIST[0].value);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -62,7 +72,7 @@ const Index = () => {
     setIsLoading(false);
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (modelOverride?: string) => {
     if (!inputValue.trim()) return;
     if (!user) {
       toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
@@ -85,6 +95,7 @@ const Index = () => {
           chatId: currentChatId,
           userMessageContent: userMessage.content,
           userId: user.id,
+          model: modelOverride || selectedModel,
         },
       });
 
@@ -157,6 +168,8 @@ const Index = () => {
             isLoading={isLoading}
             disabled={!user}
             user={user}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
           />
           <div className="text-xs text-white/40 mt-2 text-center">
             Make sure you agree to our <a href="#" className="underline hover:text-accent">Terms</a> and <a href="#" className="underline hover:text-accent">Privacy Policy</a>
