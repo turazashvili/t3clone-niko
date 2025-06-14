@@ -77,15 +77,13 @@ export function useChat() {
       setMessages([]);
     } else {
       setMessages(
-        (data ?? [])
-          .map((raw) => {
-            // Ensure only "user" or "assistant" role is used (fallback to "assistant")
-            const role: "user" | "assistant" =
-              raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
-            // parseAssistantMessage may need to propagate chat_id now
-            const parsed = parseAssistantMessage(raw);
-            return { ...parsed, chat_id: raw.chat_id, role };
-          })
+        (data ?? []).map((raw) => {
+          // Ensure only "user" or "assistant" role is used (fallback to "assistant")
+          const role: "user" | "assistant" =
+            raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
+          const parsed = parseAssistantMessage(raw);
+          return { ...parsed, chat_id: raw.chat_id, role };
+        })
       );
     }
     setIsLoading(false);
@@ -129,7 +127,6 @@ export function useChat() {
       }
       setIsLoading(true);
 
-      // Find the edited message in state to know where to update
       const userMsgIdx = messages.findIndex(m => m.id === msgId);
       if (userMsgIdx === -1) {
         setIsLoading(false);
@@ -137,14 +134,12 @@ export function useChat() {
         return false;
       }
 
-      // Optimistically update the user message's content in UI
       setMessages(prevMsgs =>
         prevMsgs.map((msg, i) =>
           msg.id === msgId ? { ...msg, content: newContent } : msg
         )
       );
 
-      // Insert a streaming placeholder for the new assistant reply
       const assistantReplyId = `edit-assistant-${Date.now()}`;
       setMessages(prevMsgs => [
         ...prevMsgs.slice(0, userMsgIdx + 1),
@@ -155,11 +150,9 @@ export function useChat() {
           reasoning: "",
           chat_id: messages[userMsgIdx].chat_id,
         },
-        // remove all trailing messages for UI (DB will delete as well)
       ]);
 
       try {
-        // Call the new streaming message-edit API (SSE, so use fetch/reader like in sendMessageStreaming)
         const resp = await fetch("https://tahxsobdcnbbqqonkhup.functions.supabase.co/message-edit", {
           method: "POST",
           headers: {
@@ -253,16 +246,21 @@ export function useChat() {
                     .order('created_at', { ascending: true });
                   if (!error && data) {
                     setMessages(
-                      data.map((raw) => ({
-                        ...raw,
-                        attachedFiles: (raw.attachments && Array.isArray(raw.attachments))
-                          ? raw.attachments.map((f: any) => ({
-                            name: f.name,
-                            type: f.type,
-                            url: f.url,
-                            originalFile: undefined,
-                          })) : [],
-                      }))
+                      data.map((raw) => {
+                        const role: "user" | "assistant" =
+                          raw.role === "user" || raw.role === "assistant" ? raw.role : "assistant";
+                        return {
+                          ...raw,
+                          role,
+                          attachedFiles: (raw.attachments && Array.isArray(raw.attachments))
+                            ? raw.attachments.map((f: any) => ({
+                              name: f.name,
+                              type: f.type,
+                              url: f.url,
+                              originalFile: undefined,
+                            })) : [],
+                        };
+                      })
                     );
                   }
                 }
