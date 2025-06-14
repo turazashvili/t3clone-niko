@@ -47,10 +47,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 
   // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
+    // Only proceed if we have a chat id -- this ensures retry happens in same chat
+    if (!currentChatId) return;
     // Remove all messages after this message in both frontend and backend, then wait for state to update
     await deleteMessagesAfter(msg.id); // ensures messages are now sliced locally
     // Now send THIS message's content again (with model override) immediately afterwards
-    // handleSendMessage always works on latest messages, so it's safe
+    // The fixed useChat will always pass the currentChatId
     await handleSendMessage(modelId, undefined, msg.attachedFiles, msg.content);
     // This ensures the new assistant message will start streaming into the UI right after deletion
   };

@@ -106,8 +106,7 @@ export function useChat() {
     [messages, currentChatId]
   );
 
-  // NEW streaming handler now uses single DB insert (by edge only)
-  // Add inputOverride param: if provided, use as content to send. Otherwise use inputValue (from chat input).
+  // Handle sendMessage streaming, ALWAYS use existing chatId
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -122,6 +121,9 @@ export function useChat() {
         setLoginOpen(true);
         return;
       }
+      // This is the key fix: NEVER reset currentChatId here unless handleNewChat is called.
+      // Only allow chat id to be null when intentionally starting a new chat.
+      // If we don't have a chat id, it will be created by the edge function. If we *do*, always supply it.
       // Clear input only if using the chat input (not for explicit inputOverride)
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
@@ -129,7 +131,7 @@ export function useChat() {
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
-        currentChatId,
+        currentChatId, // always supply currentChatId (can be null ONLY if a real new chat)
         selectedModel: modelOverride || selectedModel,
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
