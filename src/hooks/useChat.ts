@@ -115,8 +115,22 @@ export function useChat() {
       inputOverride?: string // NEW
     ) => {
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
-      if (!contentToSend.trim()) return;
+      console.log("handleSendMessage called", {
+        modelOverride,
+        webSearch,
+        attachedFiles,
+        inputOverride,
+        contentToSend,
+        user,
+        currentChatId
+      }); // ADDED
+
+      if (!contentToSend.trim()) {
+        console.log("Early exit: contentToSend is empty", { contentToSend }); // ADDED
+        return;
+      }
       if (!user) {
+        console.log("Early exit: user not set"); // ADDED
         toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
         setLoginOpen(true);
         return;
