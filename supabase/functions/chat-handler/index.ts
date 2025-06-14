@@ -28,7 +28,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -48,7 +48,7 @@ serve(async (req: Request) => {
       });
     }
 
-    // Identify which secrets are missing, if any
+    // secret checks
     const missingSecrets = [];
     if (!openRouterApiKey) missingSecrets.push('OPENROUTER_API_KEY');
     if (!supabaseUrl) missingSecrets.push('SUPABASE_URL');
@@ -70,7 +70,7 @@ serve(async (req: Request) => {
     let currentChatId = chatId;
     let conversationHistory = [];
 
-    // 1. Create new chat if chatId is not provided
+    // Create new chat if chatId not provided
     if (!currentChatId) {
       const { data: newChat, error: newChatError } = await supabaseAdmin
         .from('chats')
@@ -92,7 +92,7 @@ serve(async (req: Request) => {
       conversationHistory = existingMessages.map(msg => ({ role: msg.role, content: msg.content }));
     }
 
-    // 2. Save user's message
+    // Save user's message to DB right away
     const { error: userMessageError } = await supabaseAdmin
       .from('messages')
       .insert({
@@ -105,7 +105,7 @@ serve(async (req: Request) => {
 
     conversationHistory.push({ role: 'user', content: userMessageContent });
 
-    // 3. Prepare OpenRouter API streaming call
+    // Prepare OpenRouter API streaming call
     let modelToUse = ALLOWED_MODELS.includes(model) ? model : "openai/o4-mini";
     let body: any = {
       model: modelToUse,
@@ -122,6 +122,7 @@ serve(async (req: Request) => {
       }
     }
 
+    // Start streaming from OpenRouter, proxying each chunk to the client as SSE in real-time.
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -137,77 +138,104 @@ serve(async (req: Request) => {
       throw new Error(`OpenRouter API error: ${errorData.error?.message || openRouterResponse.statusText}`);
     }
 
-    // Parse SSE stream for reasoning and message content
-    const decoder = new TextDecoder();
-    const reader = openRouterResponse.body!.getReader();
-    let done = false;
-    let buffer = "";
     let assistantMessageContent = "";
     let reasoningContent = "";
-    let inReasoning = false;
 
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      if (value) {
-        buffer += decoder.decode(value, { stream: true });
-        // Extract complete lines
-        while (true) {
-          const lineEnd = buffer.indexOf('\n');
-          if (lineEnd === -1) break;
-          const line = buffer.slice(0, lineEnd).trim();
-          buffer = buffer.slice(lineEnd + 1);
-
-          if (!line || line.startsWith(":")) continue; // ignore comments
-
-          if (line.startsWith('data: ')) {
-            const data = line.substring(6);
-            if (data === '[DONE]') {
-              done = true;
-              break;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              // Reasoning is streamed as .delta.reasoning, content as .delta.content
-              if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
-                inReasoning = true;
-                reasoningContent += parsed.choices[0].delta.reasoning;
-              }
-              if (parsed.choices?.[0]?.delta?.content !== undefined) {
-                inReasoning = false;
-                assistantMessageContent += parsed.choices[0].delta.content;
-              }
-            } catch {
-              // ignore broken/partial JSON
-            }
-          }
-        }
-      }
-      if (doneReading) done = true;
-    }
-
-    // Store BOTH in a structured JSON string (keeps schema) under content
-    const combinedPayload = JSON.stringify({
-      content: assistantMessageContent,
-      reasoning: reasoningContent,
-    });
-
-    const { error: assistantMessageError } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        chat_id: currentChatId,
-        role: 'assistant',
-        content: combinedPayload, // Store as JSON string
-      });
-    if (assistantMessageError) throw assistantMessageError;
+    // Set up an SSE stream so the client receives data as soon as it's available
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
 
     return new Response(
-      JSON.stringify({
-        assistantResponse: combinedPayload,
-        chatId: currentChatId,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      new ReadableStream({
+        async start(controller) {
+          try {
+            const reader = openRouterResponse.body!.getReader();
+            let done = false;
+            let buffer = "";
+            let inReasoning = false;
 
+            // Send event for the new chatId (to sync on frontend if this is a new chat)
+            controller.enqueue(encoder.encode(`event: chatId\ndata: ${currentChatId}\n\n`));
+
+            while (!done) {
+              const { value, done: doneReading } = await reader.read();
+              if (value) {
+                buffer += decoder.decode(value, { stream: true });
+                // Process complete lines
+                while (true) {
+                  const lineEnd = buffer.indexOf('\n');
+                  if (lineEnd === -1) break;
+                  const line = buffer.slice(0, lineEnd).trim();
+                  buffer = buffer.slice(lineEnd + 1);
+
+                  if (!line || line.startsWith(":")) continue; // ignore comments
+
+                  if (line.startsWith('data: ')) {
+                    const data = line.substring(6);
+                    if (data === '[DONE]') {
+                      done = true;
+                      break;
+                    }
+                    try {
+                      const parsed = JSON.parse(data);
+                      // Reasoning is streamed as .delta.reasoning, content as .delta.content
+                      if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
+                        inReasoning = true;
+                        reasoningContent += parsed.choices[0].delta.reasoning;
+                        // You may choose to stream intermediate reasoning updates separately
+                        controller.enqueue(encoder.encode(`event: reasoning\ndata: ${JSON.stringify({ reasoning: reasoningContent })}\n\n`));
+                      }
+                      if (parsed.choices?.[0]?.delta?.content !== undefined) {
+                        inReasoning = false;
+                        assistantMessageContent += parsed.choices[0].delta.content;
+                        // Stream content as it comes in
+                        controller.enqueue(encoder.encode(`event: content\ndata: ${JSON.stringify({ content: parsed.choices[0].delta.content })}\n\n`));
+                      }
+                    } catch {
+                      // ignore JSON parse errors on partial data
+                    }
+                  }
+                }
+              }
+              if (doneReading) done = true;
+            }
+
+            // After all streaming is done, signal completion with a combined payload
+            const combinedPayload = JSON.stringify({
+              content: assistantMessageContent,
+              reasoning: reasoningContent,
+            });
+
+            controller.enqueue(encoder.encode(`event: done\ndata: ${combinedPayload}\n\n`));
+            controller.close();
+
+            // Persist to DB in the background (does not block user experience)
+            supabaseAdmin
+              .from('messages')
+              .insert({
+                chat_id: currentChatId,
+                role: 'assistant',
+                content: combinedPayload,
+              })
+              .then(({ error }) => {
+                if (error) console.error('DB error saving assistant message:', error);
+              });
+          } catch (e) {
+            controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: e.message || "Internal error" })}\n\n`));
+            controller.close();
+          }
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "Connection": "keep-alive",
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in chat-handler function:', error);
     return new Response(JSON.stringify({ error: error.message || 'Internal server error' }), {
