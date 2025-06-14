@@ -1,3 +1,4 @@
+
 import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +19,16 @@ interface SidebarProps {
   triggerRefresh?: any; // Add this prop
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadChat, userId, onSignOutClick, triggerRefresh }) => {
+const SIDEBAR_WIDTH = 290;
+
+const Sidebar: React.FC<SidebarProps> = ({
+  onLoginClick,
+  onNewChatClick,
+  onLoadChat,
+  userId,
+  onSignOutClick,
+  triggerRefresh,
+}) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
 
@@ -50,9 +60,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
     // Listen for realtime changes to 'chats'
     const channel = supabase
       .channel('public:chats')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'chats', filter: `user_id=eq.${userId}` }, () => {
-        fetchRecentChats();
-      })
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chats', filter: `user_id=eq.${userId}` },
+        () => {
+          fetchRecentChats();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -61,7 +75,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
   }, [userId, triggerRefresh]);
 
   return (
-    <aside className="flex flex-col h-screen w-[290px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5">
+    <aside
+      className={`fixed left-0 top-0 z-30 h-screen w-[${SIDEBAR_WIDTH}px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5 flex flex-col`}
+      style={{ width: SIDEBAR_WIDTH }}
+    >
       <div className="flex items-center gap-2 mb-6 select-none">
         <span className="font-bold tracking-wide text-xl text-white">
           T3
@@ -88,6 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
           className="absolute left-2.5 top-2.5 text-white/40 pointer-events-none"
         />
       </div>
+      {/* Scrollable chat list */}
       <div className="flex-1 overflow-y-auto mt-2 pr-1 custom-scrollbar">
         {loadingChats && (
           <div className="flex justify-center items-center h-full">
@@ -97,16 +115,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
         {!loadingChats && recentChats.length === 0 && userId && (
           <p className="text-center text-sm text-white/50 py-4">No recent chats.</p>
         )}
-        {!loadingChats && recentChats.map((chat) => (
-          <div
-            key={chat.id}
-            className="py-2 px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
-            onClick={() => onLoadChat?.(chat.id)}
-          >
-            <MessageSquare size={16} className="text-white/60 shrink-0" />
-            <span className="truncate flex-1">{chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}</span>
-          </div>
-        ))}
+        {!loadingChats &&
+          recentChats.map((chat) => (
+            <div
+              key={chat.id}
+              className="py-2 px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
+              onClick={() => onLoadChat?.(chat.id)}
+            >
+              <MessageSquare size={16} className="text-white/60 shrink-0" />
+              <span className="truncate flex-1">
+                {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
+              </span>
+            </div>
+          ))}
       </div>
       <div className="mt-auto pt-4 border-t border-[#251c2f]/70">
         {userId ? (
