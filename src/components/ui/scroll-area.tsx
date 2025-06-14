@@ -4,6 +4,7 @@ import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
 import { cn } from "@/lib/utils"
 
+// We use an extra wrapper to allow for track styling (dark track)
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
@@ -31,16 +32,16 @@ const ScrollBar = React.forwardRef<
     orientation={orientation}
     className={cn(
       "flex touch-none select-none transition-colors",
-      orientation === "vertical" &&
-        "h-full w-1.5 border-l border-l-transparent p-[1px]",
-      orientation === "horizontal" &&
-        "h-1.5 flex-col border-t border-t-transparent p-[1px]",
+      orientation === "vertical"
+        ? "h-full w-[7px] bg-[#18141d]/80 p-[2px] rounded-lg" // narrower, dark background track
+        : "h-[7px] w-full bg-[#18141d]/80 p-[2px] rounded-lg flex-col",
       className
     )}
     {...props}
   >
-    {/* Use a darker background and thinner thumb for improved aesthetics */}
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-[#232032] hover:bg-[#373251] transition-colors" />
+    <ScrollAreaPrimitive.ScrollAreaThumb
+      className="relative flex-1 rounded-full bg-[#282139] hover:bg-[#3b3150] transition-colors shadow-inner"
+    />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
 ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName
