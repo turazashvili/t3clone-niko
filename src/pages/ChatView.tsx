@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +63,7 @@ export default function ChatView() {
           content: msg.content,
           created_at: msg.created_at,
           reasoning: msg.reasoning,
-          attachedFiles: msg.attachments || [],
+          attachedFiles: Array.isArray(msg.attachments) ? msg.attachments : [],
         }));
 
       setMessages(mappedMessages);
