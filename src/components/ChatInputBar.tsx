@@ -1,3 +1,4 @@
+
 import React, { useRef, useState } from "react";
 import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
@@ -53,6 +54,8 @@ interface ChatInputBarProps {
   setAttachedFiles?: (files: UploadedFile[]) => void;
 }
 
+const MAX_FILES = 5; // Allow up to 5 files
+
 const ChatInputBar: React.FC<ChatInputBarProps> = ({
   inputValue,
   setInputValue,
@@ -70,29 +73,72 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [fileLimitError, setFileLimitError] = useState<string | null>(null);
 
   const { upload: uploadFile, uploading, error: uploadError } = useFileUpload();
 
   // Attaching files (images, pdf)
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFileLimitError(null);
     const files = e.target.files;
+    let newFiles: UploadedFile[] = [...attachedFiles];
     if (files) {
       for (let i = 0; i < files.length; ++i) {
         const file = files[i];
         // Accept images/pdf only
         if (!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) continue;
+        if (newFiles.length >= MAX_FILES) {
+          setFileLimitError(`You can attach up to ${MAX_FILES} files per message.`);
+          break;
+        }
         const uploaded = await uploadFile(file);
         if (uploaded) {
-          setAttachedFiles([...attachedFiles, uploaded]);
+          newFiles = [...newFiles, uploaded];
         }
       }
+      setAttachedFiles(newFiles.slice(0, MAX_FILES));
     }
     // reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragActive(false);
+    setFileLimitError(null);
+    const files = e.dataTransfer.files;
+    let newFiles: UploadedFile[] = [...attachedFiles];
+
+    for (let i = 0; i < files.length; ++i) {
+      const file = files[i];
+      if (!/^(image\/(png|jpeg|webp)|application\/pdf)$/.test(file.type)) continue;
+      if (newFiles.length >= MAX_FILES) {
+        setFileLimitError(`You can attach up to ${MAX_FILES} files per message.`);
+        break;
+      }
+      const uploaded = await uploadFile(file);
+      if (uploaded) {
+        newFiles = [...newFiles, uploaded];
+      }
+    }
+    setAttachedFiles(newFiles.slice(0, MAX_FILES));
+  };
+
   const removeFile = (i: number) => {
     setAttachedFiles(attachedFiles.filter((_, idx) => idx !== i));
+    setFileLimitError(null);
   };
 
   const handleSend = (e?: React.FormEvent) => {
@@ -105,11 +151,35 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   const currentModel = MODEL_LIST.find(m => m.id === selectedModel) || MODEL_LIST[0];
 
   return (
-    <div className="pointer-events-auto bg-[#1a1625]/90 rounded-t-2xl border border-[#2b2741] shadow-2xl max-w-3xl mx-auto p-3 pb-2 backdrop-blur-lg">
+    <div
+      className={cn(
+        "pointer-events-auto bg-[#1a1625]/90 rounded-t-2xl border border-[#2b2741] shadow-2xl max-w-3xl mx-auto p-3 pb-2 backdrop-blur-lg",
+        dragActive && "ring-2 ring-pink-400 ring-offset-2"
+      )}
+      onDragEnter={handleDrag}
+    >
+      {/* DRAG AND DROP OVERLAY */}
+      {dragActive && (
+        <div
+          className="fixed inset-0 z-50 flex items-end"
+          style={{ pointerEvents: "none" }}
+        >
+          <div className="w-full flex justify-center animate-in fade-in zoom-in-90 pointer-events-none select-none">
+            <div className="bg-pink-700/90 text-white rounded-2xl shadow-lg px-8 py-3 mt-40 text-lg font-bold flex items-center gap-2">
+              <Upload className="w-6 h-6" /> Drop files here to attach!
+            </div>
+          </div>
+        </div>
+      )}
+
       <form
         className="flex flex-col gap-2 w-full"
         onSubmit={handleSend}
         autoComplete="off"
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
       >
         {/* Textarea + actions row */}
         <div className="flex flex-row items-end gap-3 w-full">
@@ -252,7 +322,7 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
               aria-label="Attach file"
               className="ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-transparent text-zinc-300 hover:bg-white/10 transition-colors"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || attachedFiles.length >= MAX_FILES}
             >
               <Paperclip className="h-5 w-5" />
               <input
@@ -262,6 +332,7 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
                 multiple
                 className="hidden"
                 onChange={handleFileSelect}
+                disabled={attachedFiles.length >= MAX_FILES}
               />
             </button>
             {uploading && (
@@ -284,9 +355,15 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
             </span>
           )}
         </div>
+        {fileLimitError && (
+          <div className="px-1 pt-1 text-xs text-rose-400 font-semibold">{fileLimitError}</div>
+        )}
       </form>
     </div>
   );
 };
 
 export default ChatInputBar;
+
+// After this change, src/components/ChatInputBar.tsx is getting quite long.
+// Consider asking me to refactor this file into smaller, more maintainable files!
