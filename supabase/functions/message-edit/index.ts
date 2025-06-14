@@ -145,17 +145,14 @@ serve(async (req) => {
       assistantContent = respData.choices[0].content ?? "";
     }
 
-    // Match the chat-handler format: store a JSON string if reasoning present
-    let dbContent = (assistantReasoning !== "")
-      ? JSON.stringify({ content: assistantContent, reasoning: assistantReasoning })
-      : assistantContent;
-
+    // Write directly to 'content' and 'reasoning' columns, not JSONified in content!
     const { error: insertErr } = await supabaseClient
       .from("messages")
       .insert({
         chat_id: origMsg.chat_id,
         role: "assistant",
-        content: dbContent,
+        content: assistantContent,
+        reasoning: assistantReasoning,
         user_id: null, // AI-generated message
         model: prevModel,
       });
@@ -169,3 +166,4 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: e.message || "Unexpected error" }), { status: 500, headers: corsHeaders });
   }
 });
+
