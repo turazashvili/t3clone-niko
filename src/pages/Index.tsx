@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -13,6 +14,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   created_at?: string;
+  reasoning?: string; // Allow assistant messages to have reasoning
 }
 
 const MODEL_LIST = [
