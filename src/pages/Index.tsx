@@ -28,6 +28,7 @@ const Index = () => {
     setInputValue,
     isLoading,
     sidebarRefreshKey,
+    setSidebarRefreshKey,
     selectedModel,
     setSelectedModel,
     webSearchEnabled,

@@ -55,7 +55,19 @@ export default function ChatView() {
         .select("id, role, content, created_at, reasoning, attachments")
         .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
-      setMessages(msgs ?? []);
+
+      const mappedMessages: Message[] = (msgs ?? [])
+        .filter((msg) => msg.role === "user" || msg.role === "assistant")
+        .map((msg) => ({
+          id: msg.id,
+          role: msg.role === "user" ? "user" : "assistant",
+          content: msg.content,
+          created_at: msg.created_at,
+          reasoning: msg.reasoning,
+          attachedFiles: msg.attachments || [],
+        }));
+
+      setMessages(mappedMessages);
       setLoading(false);
     };
     if (chatId) loadChat();
