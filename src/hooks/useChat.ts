@@ -317,13 +317,14 @@ export function useChat() {
 
   // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
 
+  // === sendMessage handler now refreshes sidebar on first DB sync ===
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
       webSearch?: boolean,
       attachedFiles?: UploadedFile[],
       inputOverride?: string,
-      chatIdOverride?: string // <-- NEW PARAM
+      chatIdOverride?: string
     ) => {
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
       console.log("handleSendMessage called", {
@@ -362,9 +363,13 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        setMessages, // Still pass this, as sendMessageStreaming might want to update messages after stream is done.
+        setMessages,
         setIsLoading,
         attachedFiles: attachedFiles || [],
+        // --- Refresh sidebar after the first message syncs to DB ---
+        onFirstMessageDone: () => {
+          setSidebarRefreshKey(Date.now());
+        },
       });
     },
     [inputValue, user, currentChatId, selectedModel, webSearchEnabled]

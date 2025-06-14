@@ -39,6 +39,7 @@ export async function sendMessageStreaming({
   setMessages,
   setIsLoading,
   attachedFiles = [],
+  onFirstMessageDone, // NEW: callback after first message is fully synced
 }: {
   inputValue: string,
   user: any,
@@ -49,7 +50,8 @@ export async function sendMessageStreaming({
   setSidebarRefreshKey: (key: number) => void,
   setMessages: (fn: (prev: Message[]) => Message[]) => void,
   setIsLoading: (is: boolean) => void,
-  attachedFiles?: UploadedFile[]
+  attachedFiles?: UploadedFile[],
+  onFirstMessageDone?: () => void, // NEW
 }) {
   // Prepare local user message
   const userMessage: Message = {
@@ -138,7 +140,7 @@ export async function sendMessageStreaming({
         if (chatToFetch) {
           const fetchData = await supabase
             .from('messages')
-            .select('id, role, content, created_at, attachments, reasoning')
+            .select('id, role, content, created_at, attachments, reasoning, chat_id')
             .eq('chat_id', chatToFetch)
             .order('created_at', { ascending: true });
 
@@ -148,6 +150,8 @@ export async function sendMessageStreaming({
             setMessages(() =>
               (fetchData.data ?? []).map(parseAssistantMessage)
             );
+            // --- REFRESH SIDEBAR AFTER FIRST MESSAGE ARRIVED (and DB is up-to-date) ---
+            if (onFirstMessageDone) onFirstMessageDone();
           }
         }
       },
