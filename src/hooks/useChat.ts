@@ -204,42 +204,32 @@ export function useChat() {
             streamedReasoning = chunk;
             console.log("[SSE][editMessage][onReasoning]", { msgId, assistantMsgId, streamedReasoning });
             setMessages(prev => {
-              const idx = prev.findIndex((m, i) =>
-                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-              );
-              if (idx !== -1 && prev[idx + 1]) {
-                return prev.map((msg, i2) =>
-                  i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
-                );
-              }
-              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
-              if (aIdx !== -1) {
-                return prev.map((msg, i2) =>
-                  i2 === aIdx ? { ...msg, reasoning: streamedReasoning } : msg
-                );
-              }
-              return prev;
+              return prev.map((msg, i) => {
+                // Update both inline assistant after msgId and placeholder by assistantMsgId
+                const isInline =
+                  prev[i - 1]?.id === msgId && msg.role === "assistant";
+                const isPlaceholder = msg.id === assistantMsgId;
+                if (isInline || isPlaceholder) {
+                  return { ...msg, reasoning: streamedReasoning };
+                }
+                return msg;
+              });
             });
           },
           onContent: (chunk) => {
             streamedContent += chunk;
             console.log("[SSE][editMessage][onContent]", { msgId, assistantMsgId, streamedContent });
             setMessages(prev => {
-              const idx = prev.findIndex((m, i) =>
-                m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
-              );
-              if (idx !== -1 && prev[idx + 1]) {
-                return prev.map((msg, i2) =>
-                  i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
-                );
-              }
-              const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
-              if (aIdx !== -1) {
-                return prev.map((msg, i2) =>
-                  i2 === aIdx ? { ...msg, content: streamedContent } : msg
-                );
-              }
-              return prev;
+              return prev.map((msg, i) => {
+                // Update both inline assistant after msgId and placeholder by assistantMsgId
+                const isInline =
+                  prev[i - 1]?.id === msgId && msg.role === "assistant";
+                const isPlaceholder = msg.id === assistantMsgId;
+                if (isInline || isPlaceholder) {
+                  return { ...msg, content: streamedContent };
+                }
+                return msg;
+              });
             });
           },
           onDone: async ({ content, reasoning }) => {
