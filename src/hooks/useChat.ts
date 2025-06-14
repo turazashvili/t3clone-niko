@@ -181,35 +181,41 @@ export function useChat() {
           }
         );
         if (!res.ok || !res.body) {
-          const errJson = await res.json();
+          let errJson, errText;
+          try {
+            errJson = await res.json();
+          } catch {
+            errText = await res.text();
+          }
           toast({
             title: "Failed to edit message",
-            description: errJson.error || "Unknown error",
+            description: (errJson && (errJson.error || errJson.message)) || errText || "Unknown error",
             variant: "destructive",
           });
           setIsLoading(false);
           return false;
         }
 
-        // Process SSE response (similar to sendMessageStreaming)
+        // --- CRUCIAL: Stream in real time and update React state per chunk ---
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
         let done = false;
 
         while (!done) {
+          // Read next chunk
           const { value, done: doneReading } = await reader.read();
           if (doneReading) {
             done = true;
-            continue;
+            break;
           }
           buffer += decoder.decode(value, { stream: true });
 
-          while (true) {
-            const eventEnd = buffer.indexOf("\n\n");
-            if (eventEnd === -1) break;
-            const rawEvent = buffer.slice(0, eventEnd);
-            buffer = buffer.slice(eventEnd + 2);
+          // Handle all complete SSE events in buffer
+          let eventMatch;
+          while ((eventMatch = buffer.match(/^((?:[^\n]*\n)+)\n?/m))) {
+            const rawEvent = eventMatch[1];
+            buffer = buffer.slice(rawEvent.length);
 
             let event = "message";
             let data = "";
@@ -222,7 +228,7 @@ export function useChat() {
               try {
                 const parsed = JSON.parse(data);
                 streamedReasoning = parsed.reasoning || "";
-                setMessages((prev) => {
+                setMessages(prev => {
                   // Find assistant message after msgId
                   const idx = prev.findIndex(
                     (m, i) =>
@@ -230,9 +236,10 @@ export function useChat() {
                   );
                   if (idx !== -1 && prev[idx + 1]) {
                     // Update
-                    return prev.map((msg, i2) =>
+                    const updated = prev.map((msg, i2) =>
                       i2 === idx + 1 ? { ...msg, reasoning: streamedReasoning } : msg
                     );
+                    return updated;
                   }
                   // If placeholder not inserted yet, try to find by our generated id
                   const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
@@ -248,7 +255,7 @@ export function useChat() {
               try {
                 const parsed = JSON.parse(data);
                 streamedContent += parsed.content || "";
-                setMessages((prev) => {
+                setMessages(prev => {
                   // Find assistant message after msgId
                   const idx = prev.findIndex(
                     (m, i) =>
@@ -256,9 +263,10 @@ export function useChat() {
                   );
                   if (idx !== -1 && prev[idx + 1]) {
                     // Update
-                    return prev.map((msg, i2) =>
+                    const updated = prev.map((msg, i2) =>
                       i2 === idx + 1 ? { ...msg, content: streamedContent } : msg
                     );
+                    return updated;
                   }
                   // If placeholder not inserted yet, try to find by our generated id
                   const aIdx = prev.findIndex((m) => m.id === assistantMsgId);
@@ -272,9 +280,7 @@ export function useChat() {
               } catch {}
             } else if (event === "done") {
               try {
-                const parsed = JSON.parse(data);
-                // Always refetch the full list from DB to avoid dupes or desync
-                // Use the chat_id on the edited message if available
+                // On 'done' event: refetch all chat messages for consistency
                 const iMsg = messages.find((m) => m.id === msgId);
                 const chatIdToFetch = iMsg?.chat_id || currentChatId;
                 if (chatIdToFetch) {
@@ -295,6 +301,7 @@ export function useChat() {
                 }
               } catch {}
               done = true;
+              break;
             } else if (event === "error") {
               try {
                 const parsed = JSON.parse(data);
@@ -304,7 +311,7 @@ export function useChat() {
                   variant: "destructive",
                 });
                 // Remove blanked assistant message if present
-                setMessages((prev) => {
+                setMessages(prev => {
                   const idx = prev.findIndex((m, i) =>
                     m.id === msgId && prev[i + 1] && prev[i + 1].role === "assistant"
                   );
@@ -314,9 +321,10 @@ export function useChat() {
                     cp.splice(idx + 1, 1);
                     return cp;
                   }
-                  return prev.filter((m) => m.id !== assistantMsgId);
+                  return prev.filter(m => m.id !== assistantMsgId);
                 });
                 done = true;
+                break;
               } catch {}
             }
           }
