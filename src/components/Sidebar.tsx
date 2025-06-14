@@ -15,9 +15,10 @@ interface SidebarProps {
   onLoadChat?: (chatId: string) => void;
   userId?: string | null;
   onSignOutClick?: () => void;
+  triggerRefresh?: any; // Add this prop
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadChat, userId, onSignOutClick }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadChat, userId, onSignOutClick, triggerRefresh }) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
 
@@ -57,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLoginClick, onNewChatClick, onLoadC
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, triggerRefresh]);
 
   return (
     <aside className="flex flex-col h-screen w-[290px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5">

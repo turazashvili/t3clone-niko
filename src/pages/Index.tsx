@@ -25,6 +25,7 @@ const Index = () => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -100,8 +101,7 @@ const Index = () => {
       const { assistantResponse, chatId: newChatId } = data;
       if (!currentChatId && newChatId) {
         setCurrentChatId(newChatId);
-      }
-      if (!currentChatId && newChatId) {
+        setSidebarRefreshKey(Date.now()); // Trigger Sidebar refresh when creating a new chat!
         await fetchChatMessages(newChatId);
       } else {
         const assistantMessage: Message = {
@@ -123,6 +123,7 @@ const Index = () => {
     setCurrentChatId(null);
     setMessages([]);
     setInputValue("");
+    setSidebarRefreshKey(Date.now()); // Trigger a refresh when user starts a new chat session
   };
 
   const loadChat = (chatId: string) => {
@@ -147,6 +148,7 @@ const Index = () => {
         onLoadChat={loadChat}
         userId={user?.id}
         onSignOutClick={handleSignOut}
+        triggerRefresh={sidebarRefreshKey} // pass refresh key
       />
       <main className="flex-1 flex flex-col min-h-screen relative bg-transparent">
         {messages.length === 0 && !isLoading ? (
