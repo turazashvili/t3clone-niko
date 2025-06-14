@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -179,6 +178,7 @@ const Index = () => {
             if (!currentChatId) {
               setCurrentChatId(data);
               setSidebarRefreshKey(Date.now());
+              // PATCH: DO NOT fetchChatMessages here
             }
           } else if (event === "reasoning") {
             try {
@@ -205,7 +205,6 @@ const Index = () => {
               );
             } catch {}
           } else if (event === "done") {
-            // Finalize and replace with parsed content
             try {
               const parsed = JSON.parse(data);
               setMessages((prev) =>
@@ -219,10 +218,17 @@ const Index = () => {
                     : msg
                 )
               );
+              // PATCH: Only fetchChatMessages if this is not the "first message, new chat"
+              // If chatId was previously null (just created), do NOT refresh messages (would likely be empty)
+              // Only update sidebar/listing as above.
               if (!currentChatId && streamingNewChatId) {
+                // Only refresh sidebar, do NOT fetchChatMessages here!
                 setCurrentChatId(streamingNewChatId);
                 setSidebarRefreshKey(Date.now());
-                await fetchChatMessages(streamingNewChatId);
+                // (Remove/skip fetchChatMessages(streamingNewChatId);)
+              } else if (currentChatId) {
+                // For subsequent messages, ensure up-to-date list
+                await fetchChatMessages(currentChatId);
               }
             } catch {}
             done = true;
@@ -316,4 +322,3 @@ const Index = () => {
 };
 
 export default Index;
-
