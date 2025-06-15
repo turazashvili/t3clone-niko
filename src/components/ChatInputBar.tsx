@@ -39,22 +39,39 @@ const iconsByModality: Record<
 };
 // Helper function to render icons with tooltips
 function getModalityIcons(inputs: string[]) {
-  return inputs.map((m) => {
-    const iconEntry = iconsByModality[m] || {
-      icon: <LucideFile className="h-5 w-5" aria-label={m} />,
-      label: m,
-    };
-    return (
-      <Tooltip key={m}>
-        <TooltipTrigger asChild>
-          <span className="inline-block mr-1 text-green-300 opacity-80 cursor-pointer">
-            {iconEntry.icon}
-          </span>
-        </TooltipTrigger>
-        <TooltipContent side="top">{iconEntry.label}</TooltipContent>
-      </Tooltip>
-    );
-  });
+  return inputs
+    .filter((m) => m === "image" || m === "file")
+    .map((m) => {
+      if (m === "image") {
+        return (
+          <Tooltip key="image">
+            <TooltipTrigger asChild>
+              <span className="inline-block mr-1 opacity-80 cursor-pointer text-green-300">
+                <Eye className="h-5 w-5" aria-label="Supports image upload and analysis" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Supports image upload and analysis
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+      if (m === "file") {
+        return (
+          <Tooltip key="file">
+            <TooltipTrigger asChild>
+              <span className="inline-block mr-1 opacity-90 cursor-pointer text-blue-400">
+                <FileText className="h-5 w-5" aria-label="Supports PDF upload and analysis" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Supports PDF upload and analysis
+            </TooltipContent>
+          </Tooltip>
+        );
+      }
+      return null;
+    });
 }
 function prettyNum(num?: number | null) {
   if (!num) return "?";
