@@ -11,6 +11,7 @@ import { processMessageStream } from "./useMessageStreamer";
 import { formatToastError } from "./formatToastError";
 import { useSidebarSync } from "@/hooks/useSidebarSync";
 import { useUserProfile } from "./useUserProfile";
+import { useNavigate } from "react-router-dom";
 
 export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -325,6 +326,10 @@ export function useChat() {
   // === sendMessage handler now refreshes sidebar on every DB sync ===
   const { triggerSidebarRefresh } = useSidebarSync(user?.id);
 
+  // Add navigation
+  const navigate = useNavigate();
+
+  // Updated handleSendMessage to accept auto-navigation after chat creation
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -373,6 +378,10 @@ export function useChat() {
           setSidebarRefreshKey(Date.now());
           if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
+        // NEW: Auto-navigate to /chat/{chatId} after first message creates a chat
+        onNewChatId: (chatId: string) => {
+          navigate(`/chat/${chatId}`);
+        },
       });
     },
     [
@@ -386,7 +395,8 @@ export function useChat() {
       setInputValue,
       setIsLoading,
       setCurrentChatId,
-      setMessages
+      setMessages,
+      navigate // added to dependency array
     ]
   );
 

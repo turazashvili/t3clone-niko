@@ -40,6 +40,7 @@ export async function sendMessageStreaming({
   setIsLoading,
   attachedFiles = [],
   onFirstMessageDone, // NEW: callback after first message is fully synced
+  onNewChatId, // <--- ADDED! callback with new chatId
 }: {
   inputValue: string,
   user: any,
@@ -52,6 +53,7 @@ export async function sendMessageStreaming({
   setIsLoading: (is: boolean) => void,
   attachedFiles?: UploadedFile[],
   onFirstMessageDone?: () => void, // NEW
+  onNewChatId?: (chatId: string) => void, // <--- ADDED
 }) {
   // Prepare local user message
   const userMessage: Message = {
@@ -103,6 +105,9 @@ export async function sendMessageStreaming({
 
     const reader = response.body.getReader();
 
+    let initialChatId: string | null = null;
+
+    // We'll detect the first "chatId" in the SSE stream and use it:
     await processMessageStream(reader, {
       onReasoning: (chunk) => {
         streamedReasoning = chunk;
@@ -124,7 +129,7 @@ export async function sendMessageStreaming({
           )
         );
       },
-      onDone: async ({ content, reasoning }) => {
+      onDone: async ({ content, reasoning, chatId }) => {
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
@@ -136,7 +141,14 @@ export async function sendMessageStreaming({
               : msg
           )
         );
-        const chatToFetch = streamingNewChatId || currentChatId;
+        // If a new chatId was created, set it and trigger navigation:
+        if (chatId && !currentChatId) {
+          setCurrentChatId(chatId);
+          if (onNewChatId) {
+            onNewChatId(chatId);
+          }
+        }
+        const chatToFetch = chatId || currentChatId;
         if (chatToFetch) {
           const fetchData = await supabase
             .from('messages')
