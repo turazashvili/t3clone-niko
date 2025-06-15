@@ -326,18 +326,16 @@ export function useChat() {
     [session, messages, currentChatId]
   );
 
-  // Helper: wait until we have navigated to /chat/<chatId>
+  // Helper: wait for navigation to /chat/:chatId
   const waitForNavigationToChat = useCallback(async (chatId: string) => {
-    // If already on correct pathname, resolve immediately
     if (window.location.pathname === `/chat/${chatId}`) return;
-    // Poll every 15ms up to 1.5s (or 2s at most)
-    let maxTries = 120; // 15ms * 120 ~= 1.8s
+    let maxTries = 120;
     while (window.location.pathname !== `/chat/${chatId}` && maxTries-- > 0) {
-      await new Promise(r => setTimeout(r, 15));
+      await new Promise((r) => setTimeout(r, 15));
     }
   }, []);
 
-  // Helper to create a chat if needed (unchanged)
+  // Helper to create a chat if needed
   const createChatIfNeeded = useCallback(
     async () => {
       if (currentChatId) return currentChatId;
@@ -362,7 +360,7 @@ export function useChat() {
     [currentChatId, user, session]
   );
 
-  // Strictly synchronous sending sequence: 
+  // Strict: Enforce correct step-by-step chat creation/send flow
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -371,7 +369,6 @@ export function useChat() {
       inputOverride?: string,
       chatIdOverride?: string
     ) => {
-      // Use chatIdOverride > currentChatId
       let effectiveChatId = chatIdOverride ?? currentChatId;
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
 
@@ -383,22 +380,24 @@ export function useChat() {
         return;
       }
 
-      // 1. Make sure we have a chat ID. Always call edge, don't send to LLM before navigation
+      // If creating a new chat, ensure strict sequential logic:
       if (!effectiveChatId) {
-        // -- Create chat and get chatId (WAIT)
+        // 1. Create the new chat (wait)
         effectiveChatId = await createChatIfNeeded();
         if (!effectiveChatId) return;
+        // 2. Navigate and wait
+        navigate(`/chat/${effectiveChatId}`);
+        await waitForNavigationToChat(effectiveChatId);
+        // 3. Only then, update local state for chat id
         setCurrentChatId(effectiveChatId);
-        // 2. Navigate to /chat/:chatId (WAIT)
-        navigate(`/chat/${effectiveChatId}`);
-        await waitForNavigationToChat(effectiveChatId);
       } else if (window.location.pathname !== `/chat/${effectiveChatId}`) {
-        // If we are not on correct chat, navigate there and wait
+        // If we're in the wrong chat, navigate there and wait
         navigate(`/chat/${effectiveChatId}`);
         await waitForNavigationToChat(effectiveChatId);
+        setCurrentChatId(effectiveChatId);
       }
 
-      // After navigation is physically done:
+      // Only NOW start streaming
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
@@ -418,7 +417,7 @@ export function useChat() {
           if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
         onNewChatId: (_chatId: string) => {
-          // No need to navigate here — handled strictly above.
+          // No action needed (already handled)
         },
       });
     },
