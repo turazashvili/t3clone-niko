@@ -337,19 +337,21 @@ export function useChat() {
   // const waitForNavigationToChat = useCallback(async (chatId: string) => { ... }, []);
 
   // Helper to create a chat if needed
+  // Updated: Accepts prompt and passes it to the backend for title generation
   const createChatIfNeeded = useCallback(
-    async () => {
+    async (prompt?: string) => {
       if (currentChatId) return currentChatId;
       if (!user || !session) return null;
 
       const url = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/create-chat";
+      const safePrompt = (prompt ?? "").trim().slice(0, 200);
       const res = await fetch(url, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({ userId: user.id, prompt: safePrompt }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -385,7 +387,8 @@ export function useChat() {
       let createdChatId: string | null = null;
       let isNewChat = false;
       if (!effectiveChatId) {
-        effectiveChatId = await createChatIfNeeded();
+        // Pass the initial user prompt for chat title generation
+        effectiveChatId = await createChatIfNeeded(contentToSend.trim().slice(0, 200));
         if (!effectiveChatId) return;
         setCurrentChatId(effectiveChatId);
         createdChatId = effectiveChatId;
