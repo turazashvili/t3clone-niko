@@ -329,7 +329,29 @@ export function useChat() {
   // Add navigation
   const navigate = useNavigate();
 
-  // Updated handleSendMessage to accept auto-navigation after chat creation
+  // Helper to create a chat if needed
+  const createChatIfNeeded = useCallback(
+    async () => {
+      if (currentChatId) return currentChatId;
+      if (!user) return null;
+
+      const url = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/create-chat";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Failed to create chat", description: data?.error || "Unknown error", variant: "destructive" });
+        return null;
+      }
+      return data.chatId;
+    },
+    [currentChatId, user]
+  );
+
+  // The new handleSendMessage: first ensures chatId, navigates if needed, then streams
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -338,6 +360,19 @@ export function useChat() {
       inputOverride?: string,
       chatIdOverride?: string
     ) => {
+      let effectiveChatId = chatIdOverride ?? currentChatId;
+
+      // 1. If new chat, create chat first.
+      if (!effectiveChatId) {
+        effectiveChatId = await createChatIfNeeded();
+        if (!effectiveChatId) return; // fail early
+        setCurrentChatId(effectiveChatId);
+        navigate(`/chat/${effectiveChatId}`);
+        // Wait a tick for navigation
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+
+      // 2. Then proceed to send the message as normal
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
       console.log("handleSendMessage called", {
         modelOverride,
@@ -365,7 +400,7 @@ export function useChat() {
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
-        currentChatId: chatIdOverride ?? currentChatId,
+        currentChatId: effectiveChatId,
         selectedModel: modelOverride || selectedModel,
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
@@ -373,14 +408,12 @@ export function useChat() {
         setMessages,
         setIsLoading,
         attachedFiles: attachedFiles || [],
-        // Always trigger sidebar refresh after each message is sent and synced.
         onFirstMessageDone: () => {
           setSidebarRefreshKey(Date.now());
           if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
-        // NEW: Auto-navigate to /chat/{chatId} after first message creates a chat
         onNewChatId: (chatId: string) => {
-          navigate(`/chat/${chatId}`);
+          // We don't need to navigate now, already handled above.
         },
       });
     },
@@ -396,7 +429,8 @@ export function useChat() {
       setIsLoading,
       setCurrentChatId,
       setMessages,
-      navigate // added to dependency array
+      navigate,
+      createChatIfNeeded
     ]
   );
 
