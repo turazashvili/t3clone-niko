@@ -109,6 +109,13 @@ export async function sendMessageStreaming({
 
     // We'll detect the first "chatId" in the SSE stream and use it:
     await processMessageStream(reader, {
+      onChatId: (chatId) => {
+        // Only update/set if starting from a new chat!
+        if (!currentChatId && chatId) {
+          setCurrentChatId(chatId);
+          if (onNewChatId) onNewChatId(chatId);
+        }
+      },
       onReasoning: (chunk) => {
         streamedReasoning = chunk;
         setMessages((prev) =>
@@ -141,7 +148,7 @@ export async function sendMessageStreaming({
               : msg
           )
         );
-        // If a new chatId was created, set it and trigger navigation:
+        // If a new chatId was created (didn't receive via event before), set it:
         if (chatId && !currentChatId) {
           setCurrentChatId(chatId);
           if (onNewChatId) {
