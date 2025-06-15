@@ -28,6 +28,8 @@ export function useChatsRealtime(
         "postgres_changes",
         { event: "*", schema: "public", table: "chats" },
         (payload) => {
+          // ADDED DEBUG LOGGING to diagnose realtime
+          console.log("Realtime chats payload", payload);
           setChats((chats) => {
             // Ignore chats from other users for non-insert events
             if (
@@ -54,6 +56,8 @@ export function useChatsRealtime(
               payload.eventType === "UPDATE" &&
               payload.new.user_id === userId
             ) {
+              // ADDED LOG: Chat update received
+              console.log("Realtime UPDATE for chat", payload.new);
               // Update chat properties locally
               return chats.map((c) =>
                 c.id === payload.new.id
