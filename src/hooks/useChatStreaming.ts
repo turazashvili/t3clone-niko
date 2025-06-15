@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UploadedFile } from "@/hooks/useFileUpload";
@@ -55,8 +54,10 @@ export async function sendMessageStreaming({
   onFirstMessageDone?: () => void,
   onNewChatId?: (chatId: string) => void,
 }) {
-  // NO local/optimistic message insertion here!
   setIsLoading(true);
+
+  // Prepare a "temporary" assistant message id (prefixed, not a UUID)
+  const optimisticAssistantId = `${Date.now()}_assistant`;
 
   try {
     const response = await fetch(CHAT_HANDLER_URL, {
@@ -77,7 +78,22 @@ export async function sendMessageStreaming({
 
     const reader = response.body.getReader();
 
-    // We'll detect the first "chatId" in the SSE stream and use it:
+    // Insert a temporary assistant message for streaming
+    setMessages(prev => [
+      ...prev,
+      {
+        id: optimisticAssistantId,
+        role: "assistant",
+        content: "",
+        reasoning: "",
+        attachedFiles: [],
+        optimistic: true,
+      }
+    ]);
+
+    let streamedContent = "";
+    let streamedReasoning = "";
+
     await processMessageStream(reader, {
       onChatId: (chatId) => {
         if (!currentChatId && chatId) {
@@ -85,11 +101,28 @@ export async function sendMessageStreaming({
           if (onNewChatId) onNewChatId(chatId);
         }
       },
-      // Don't update UI for content or reasoning! Only update after DB synces.
-      onReasoning: (_chunk) => {},
-      onContent: (_chunk) => {},
+      onReasoning: (chunk) => {
+        streamedReasoning = chunk;
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === optimisticAssistantId
+              ? { ...msg, reasoning: streamedReasoning }
+              : msg
+          )
+        );
+      },
+      onContent: (chunk) => {
+        streamedContent += chunk;
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === optimisticAssistantId
+              ? { ...msg, content: streamedContent }
+              : msg
+          )
+        );
+      },
       onDone: async ({ chatId }) => {
-        // Refetch from DB to ensure UI is correct/consistent (optional safety)
+        // Remove the optimistic message and refetch from DB
         const chatToFetch = chatId || currentChatId;
         if (chatToFetch) {
           const fetchData = await supabase
@@ -106,6 +139,9 @@ export async function sendMessageStreaming({
             );
             if (onFirstMessageDone) onFirstMessageDone();
           }
+        } else {
+          // Always remove the optimistic assistant if somehow chatToFetch isn't available
+          setMessages(prev => prev.filter(msg => msg.id !== optimisticAssistantId));
         }
       },
       onError: (err) => {
@@ -114,12 +150,14 @@ export async function sendMessageStreaming({
           description: formatToastError(err),
           variant: "destructive",
         });
-        // Don't remove any messages (nothing was optimistically added)
+        // Remove the optimistic assistant message on error
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticAssistantId));
       }
     });
   } catch (err: any) {
     toast({ title: "Error sending message", description: err?.message || "Could not connect to chat service.", variant: "destructive" });
-    // Don't remove any messages (nothing was optimistically added)
+    // Remove the optimistic message on error
+    setMessages(prev => prev.filter(msg => msg.id !== optimisticAssistantId));
   } finally {
     setIsLoading(false);
   }
