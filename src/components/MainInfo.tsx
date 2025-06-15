@@ -2,12 +2,12 @@ import React from "react";
 
 const requirements = [
   { title: "Chat with LLMs", description: "Seamlessly converse with multiple state-of-the-art language models." },
-  { title: "Auth & Sync", description: "Sign in and instantly sync your chats across all your devices." },
+  { title: "Auth & Sync", description: "Using Supabase Auth and Sync, instantly sync your chats across all your devices." },
   { title: "Attachments", description: "Effortlessly upload and share images or PDFs in your conversations." },
   { title: "Syntax Highlighting", description: "Enjoy beautiful, readable code with smart syntax highlighting." },
   { title: "Chat Sharing", description: "Share your favorite conversations with a single click." },
   { title: "Web Search", description: "Supercharge chats with real-time web search integration." },
-  { title: "Mobile App", description: "Experience a fully responsive design—perfect on any device." },
+  { title: "Mobile Responsive", description: "Experience a fully responsive design—perfect on any device." },
 ];
 
 const MainInfo: React.FC = () => {
