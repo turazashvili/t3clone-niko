@@ -42,11 +42,22 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   // Track previous last message role to detect user sends
   const prevLastMessageRole = useRef<string | undefined>(undefined);
 
-  // Function to scroll to the bottom
+  // Function to scroll to the bottom (with diagnostics)
   const scrollToBottom = () => {
     const sc = scrollContainerRef.current;
     if (sc) {
+      // Diagnostics
+      console.log("[ChatArea] scrollToBottom called");
+      console.log("  scrollTop before:", sc.scrollTop, "  clientHeight:", sc.clientHeight, "  scrollHeight:", sc.scrollHeight);
       sc.scrollTop = sc.scrollHeight;
+      setTimeout(() => {
+        // After render
+        if (scrollContainerRef.current) {
+          console.log("  scrollTop after:", scrollContainerRef.current.scrollTop);
+        }
+      }, 100);
+    } else {
+      console.log("[ChatArea] scrollToBottom: no scrollContainerRef");
     }
   };
 
@@ -98,7 +109,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     // eslint-disable-next-line
   }, [messages, isLoading, isAtBottom]);
 
-  // --- NEW: Scroll when user message is added ---
+  // Scroll to bottom if a new user message is added
   useEffect(() => {
     // Whenever the last message is from the user AND it is new, scroll to bottom
     if (
@@ -106,6 +117,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
       messages[messages.length - 1].role === "user" &&
       prevLastMessageRole.current !== "user"
     ) {
+      console.log("[ChatArea] Detected new user message. Trigger scrollToBottom.");
       scrollToBottom();
     }
     prevLastMessageRole.current =
@@ -126,7 +138,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     <div
       ref={scrollContainerRef}
       className="flex-1 overflow-y-auto pt-4 sm:pt-8 pb-24 overscroll-y-contain"
-      style={{ outline: "none", WebkitOverflowScrolling: "touch" }}
+      style={{ outline: "none", WebkitOverflowScrolling: "touch", minHeight: 0 }}
       tabIndex={0}
     >
       <div className="
