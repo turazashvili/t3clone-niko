@@ -80,8 +80,9 @@ export function useChat() {
     // eslint-disable-next-line
   }, []);
 
-  // Fetch profile when user changes
+  // Fetch profile when user changes (debounced)
   useEffect(() => {
+    let timeout: NodeJS.Timeout | null = null;
     const fetchProfile = async () => {
       if (user?.id) {
         setProfileLoading(true);
@@ -101,7 +102,17 @@ export function useChat() {
         setProfileLoading(false);
       }
     };
-    fetchProfile();
+    if (user?.id) {
+      // Debounce the profile fetch: 300ms after the latest change
+      timeout = setTimeout(fetchProfile, 300);
+    } else {
+      // on log out, immediately clear profile
+      fetchProfile();
+    }
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
+    // eslint-disable-next-line
   }, [user]);
 
   // === NEW: Attach realtime chat syncing here ===
