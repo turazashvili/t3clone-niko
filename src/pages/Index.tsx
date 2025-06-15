@@ -87,11 +87,11 @@ const Index = () => {
         ...messages,
         {
           id: "partial-assistant",
-          role: "assistant",
+          role: "assistant" as const,
           content: partialAssistant.content,
           reasoning: partialAssistant.reasoning,
         },
-      ];
+      ] as typeof messages;
     }
     return messages;
   }, [messages, partialAssistant]);
