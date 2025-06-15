@@ -318,8 +318,9 @@ export function useChat() {
 
   // REPLACE THE OLD handleSendMessage, redoAfterEdit, etc. from here...
 
-  // === sendMessage handler now refreshes sidebar on first DB sync ===
-  const { triggerSidebarRefresh } = useSidebarSync(user?.id); // Only need the trigger, not the refreshKey here
+  // === sendMessage handler now refreshes sidebar on every DB sync ===
+  const { triggerSidebarRefresh } = useSidebarSync(user?.id);
+
   const handleSendMessage = useCallback(
     async (
       modelOverride?: string,
@@ -352,11 +353,6 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // REMOVE the optimistic setMessages here!
-      // Previously, something like:
-      // setMessages((prev) => [...prev, { ... }]);
-      // Instead, just send the message, and let realtime sync show it when it is inserted.
-
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -368,14 +364,26 @@ export function useChat() {
         setMessages,
         setIsLoading,
         attachedFiles: attachedFiles || [],
-        // --- Refresh sidebar after the first message syncs to DB ---
+        // Always trigger sidebar refresh after each message is sent and synced.
         onFirstMessageDone: () => {
-          setSidebarRefreshKey(Date.now()); // Local update for legacy code paths/UI
-          triggerSidebarRefresh();          // Full sync for new sidebar system
+          setSidebarRefreshKey(Date.now());
+          if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
       });
     },
-    [inputValue, user, currentChatId, selectedModel, webSearchEnabled, triggerSidebarRefresh]
+    [
+      inputValue,
+      user,
+      currentChatId,
+      selectedModel,
+      webSearchEnabled,
+      triggerSidebarRefresh,
+      setSidebarRefreshKey,
+      setInputValue,
+      setIsLoading,
+      setCurrentChatId,
+      setMessages
+    ]
   );
 
   // Helper for redoing after edit - NO LONGER NEEDED for UI edit flow!

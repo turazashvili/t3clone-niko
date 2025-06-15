@@ -13,6 +13,7 @@ import { UploadedFile } from "@/hooks/useFileUpload";
 import AttachmentViewerDialog from "./AttachmentViewerDialog";
 import MessageActionsBar from "./MessageActionsBar";
 import { useChat } from "@/hooks/useChat";
+import DotLoader from "./DotLoader";
 
 // Register languages we'll use regularly (more can be added)
 SyntaxHighlighter.registerLanguage("js", js);
@@ -61,11 +62,18 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     currentChatId,
     deleteMessagesAfter,
     editMessage,
+    isLoading,
   } = useChat();
 
   // Add UI editing state
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
+
+  // Helper: Find the latest empty assistant message (for streaming/loader)
+  const lastEmptyAssistantId = React.useMemo(() => {
+    const assistants = messages.filter(m => m.role === "assistant" && (!m.content || m.content.trim() === ""));
+    return assistants.length > 0 ? assistants[assistants.length - 1].id : undefined;
+  }, [messages]);
 
   // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
@@ -207,7 +215,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                 </CollapsibleContent>
               </Collapsible>
             )}
-            {/* Main message content */}
+            {/* Main message content or loader */}
             {isEditing ? (
               <form onSubmit={handleEditSubmit} className="flex flex-col w-full gap-2">
                 <textarea
@@ -224,41 +232,46 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               </form>
             ) : (
               <>
-                <div className="w-full">
-                  <ReactMarkdown
-                    components={{
-                      p: (props) => (
-                        <p className="my-1 leading-relaxed" {...props} />
-                      ),
-                      hr: (props) => (
-                        <hr className="my-3 border-white/10" {...props} />
-                      ),
-                      code({node, className, children, ...props}) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        // @ts-ignore
-                        if (!props.inline && match) {
+                <div className="w-full min-h-[1.75rem]">
+                  {/* Show loader if this is the last assistant with empty content (streaming) */}
+                  {(msg.role === "assistant" && (!msg.content || msg.content.trim() === "") && msg.id === lastEmptyAssistantId) ? (
+                    <DotLoader />
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: (props) => (
+                          <p className="my-1 leading-relaxed" {...props} />
+                        ),
+                        hr: (props) => (
+                          <hr className="my-3 border-white/10" {...props} />
+                        ),
+                        code({node, className, children, ...props}) {
+                          const match = /language-(\w+)/.exec(className || "");
+                          // @ts-ignore
+                          if (!props.inline && match) {
+                            return (
+                              <SyntaxHighlighter
+                                style={atomDark}
+                                language={match[1]}
+                                PreTag="div"
+                                className="my-2 rounded-lg text-sm"
+                                {...props}
+                              >
+                                {String(children).replace(/\n$/, "")}
+                              </SyntaxHighlighter>
+                            );
+                          }
                           return (
-                            <SyntaxHighlighter
-                              style={atomDark}
-                              language={match[1]}
-                              PreTag="div"
-                              className="my-2 rounded-lg text-sm"
-                              {...props}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
+                            <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
+                              {children}
+                            </code>
                           );
                         }
-                        return (
-                          <code className="rounded bg-[#312a4b] px-1.5 py-0.5 text-xs" {...props}>
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
                 </div>
                 {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-3 items-center">
