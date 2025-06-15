@@ -139,12 +139,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   "rounded-xl",
                   "flex",
                   "flex-col", // vertical layout, so text and actions are stacked
-                  "items-start",
+                  "items-end", // align right items
                   "gap-2",
                   "relative",
                   "bg-accent",
                   "text-white",
                   "rounded-br-none",
+                  "text-right" // right-align all text in user message
                 ].join(" ")
               : [
                   // Assistant: same as before, wide bubble
@@ -166,8 +167,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
           }
         >
           {msg.role === 'assistant' && <Bot size={20} className="text-white/70 mt-0.5 shrink-0" />}
-          <div className="flex flex-col w-full">
-            {/* Reasoning */}
+          <div className={`flex flex-col w-full ${msg.role === "user" ? "items-end" : ""}`}>
+            {/* Reasoning (assistant only) */}
             {msg.role === "assistant" && msg.reasoning && (
               <Collapsible open={reasonOpen} onOpenChange={setReasonOpen} className="mb-2">
                 <CollapsibleTrigger asChild>
@@ -181,7 +182,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   <ReactMarkdown
                     components={{
                       p: (props) => (
-                        <p className="my-1 leading-relaxed" {...props} />
+                        <p className={`my-1 leading-relaxed ${msg.role === "user" ? "text-right" : ""}`} {...props} />
                       ),
                       hr: (props) => (
                         <hr className="my-3 border-white/10" {...props} />
@@ -218,12 +219,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
             )}
             {/* Main message content or loader */}
             {isEditing ? (
-              <form onSubmit={handleEditSubmit} className="flex flex-col w-full gap-2">
+              <form onSubmit={handleEditSubmit} className={`flex flex-col w-full gap-2 ${msg.role === "user" ? "items-end" : ""}`}>
                 <textarea
                   value={editValue}
                   onChange={e => setEditValue(e.target.value)}
                   rows={2}
-                  className="w-full rounded p-2 bg-white/10 text-white"
+                  className={`w-full rounded p-2 bg-white/10 text-white ${msg.role === "user" ? "text-right" : ""}`}
                   autoFocus
                 />
                 <div className="flex gap-2 mt-1">
@@ -233,7 +234,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               </form>
             ) : (
               <>
-                <div className="w-full min-h-[1.75rem]">
+                <div className={`w-full min-h-[1.75rem] ${msg.role === "user" ? "text-right" : ""}`}>
                   {/* Show loader if this is the last assistant with empty content (streaming) */}
                   {(msg.role === "assistant" && (!msg.content || msg.content.trim() === "") && msg.id === lastEmptyAssistantId) ? (
                     <DotLoader />
@@ -241,7 +242,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                     <ReactMarkdown
                       components={{
                         p: (props) => (
-                          <p className="my-1 leading-relaxed" {...props} />
+                          <p className={`my-1 leading-relaxed ${msg.role === "user" ? "text-right" : ""}`} {...props} />
                         ),
                         hr: (props) => (
                           <hr className="my-3 border-white/10" {...props} />
@@ -275,7 +276,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   )}
                 </div>
                 {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-3 items-center">
+                  <div className={`mt-3 flex flex-wrap gap-3 items-center ${msg.role === "user" ? "justify-end" : ""}`}>
                     {msg.attachedFiles.map((file, idx) => (
                       <div key={idx} className="flex flex-col items-center">
                         {isImageType(file.type) ? (
@@ -324,7 +325,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               />
             </div>
           )}
-          {msg.role === 'user' && <UserIcon size={20} className="text-white/70 mt-0.5 shrink-0" />}
           {/* Attachment Viewer Dialog */}
           <AttachmentViewerDialog open={viewerOpen} file={selectedFile} onClose={handleCloseViewer} />
         </div>
