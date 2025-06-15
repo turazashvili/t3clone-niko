@@ -8,6 +8,7 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
+import ShareChatButton from "@/components/ShareChatButton";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
@@ -90,6 +91,20 @@ const Index = () => {
             : { marginLeft: SIDEBAR_WIDTH }
         }
       >
+        {/* STICKY SHARE BUTTON ON TOP RIGHT */}
+        <div
+          className="sticky top-4 z-40 flex justify-end w-full max-w-full md:max-w-3xl mx-auto px-2 sm:px-4"
+          style={{
+            pointerEvents: "none", // So chat messages don't get blocked
+            minHeight: 0,
+          }}
+        >
+          {currentChatId && (
+            <div className="pointer-events-auto">
+              <ShareChatButton chatId={currentChatId} />
+            </div>
+          )}
+        </div>
         <div className={`flex-1 flex flex-col min-h-0 ${
           collapsed ? "items-center" : ""
         }`}>

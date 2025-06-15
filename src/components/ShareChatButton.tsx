@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -119,7 +120,7 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
   };
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-end gap-2 min-w-[256px]">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -128,11 +129,12 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
               {fetching ? (
                 <Button
                   variant="outline"
-                  className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground"
+                  className="px-4 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground min-w-[212px]"
                   size="sm"
                   disabled
                   type="button"
                   data-testid="share-chat-btn"
+                  style={{ fontWeight: 500, fontSize: "18px" }}
                 >
                   <span className="font-medium animate-pulse">...</span>
                 </Button>
@@ -141,7 +143,7 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
                 <span className="flex flex-row gap-2">
                   <Button
                     variant="outline"
-                    className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
+                    className="px-4 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all min-w-[212px]"
                     size="sm"
                     title="Copy public link"
                     onClick={handleCopy}
@@ -149,8 +151,9 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
                     type="button"
                     disabled={loading}
                     data-testid="share-chat-btn"
+                    style={{ fontWeight: 500, fontSize: "18px" }}
                   >
-                    <ShareIcon size={18} />
+                    <ShareIcon size={20} />
                     <span className="font-medium">
                       {copied ? "Copied!" : "Share"}
                     </span>
@@ -169,7 +172,7 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
                 // Not public: offer to make public and share in one
                 <Button
                   variant="outline"
-                  className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
+                  className="px-4 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all min-w-[212px]"
                   size="sm"
                   title="Make public & share link"
                   onClick={handleMakePublicAndShare}
@@ -177,8 +180,9 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
                   type="button"
                   disabled={loading}
                   data-testid="share-chat-btn"
+                  style={{ fontWeight: 500, fontSize: "18px" }}
                 >
-                  <ShareIcon size={18} />
+                  <ShareIcon size={20} />
                   <span className="font-medium">
                     {loading ? "Making Public..." : "Make Public & Share"}
                   </span>
@@ -198,8 +202,17 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
         </Tooltip>
       </TooltipProvider>
       {publicState === false && (
-        <span className="text-xs mt-1 text-destructive-foreground/90 bg-destructive/10 border border-destructive/20 px-2 py-1 rounded-sm animate-pulse">
-          This chat is <b>not public</b>, so others won't be able to view it.
+        <span className="text-[16px] mt-1 text-[#93323b] bg-[#3c181c] border border-[#93323b33] px-3 py-1 rounded-md font-normal whitespace-nowrap shadow-sm transition-all"
+          style={{
+            fontFamily: "inherit",
+            fontWeight: 400,
+            letterSpacing: 0,
+            boxShadow: "0 2px 6px 0 #0000001a",
+            maxWidth: "330px",
+            lineHeight: 1.45,
+          }}
+        >
+          This chat is <b className="font-semibold">not public</b>, so others won't be able to view it.
         </span>
       )}
       {publicState === true && (
