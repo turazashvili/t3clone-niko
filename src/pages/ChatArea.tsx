@@ -34,15 +34,18 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   const prevMsgLen = useRef<number>(messages.length);
   const prevIsLoading = useRef<boolean>(isLoading);
 
+  // This tracks the previous chat id or the set of message ids (for new chat detection)
+  const prevMessageIdsRef = useRef<string[]>(messages.map(m => m.id));
+
   // Scroll-to-bottom function with diagnostics
   const scrollToBottom = () => {
     const sc = scrollContainerRef.current;
     if (sc) {
-      console.log("[ChatArea] scrollToBottom called");
       sc.scrollTop = sc.scrollHeight;
       setTimeout(() => {
         if (scrollContainerRef.current) {
-          console.log("  scrollTop after:", scrollContainerRef.current.scrollTop);
+          // Diagnostic
+          console.log("[ChatArea] scrollToBottom, final scrollTop:", scrollContainerRef.current.scrollTop);
         }
       }, 100);
     }
@@ -76,11 +79,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
       messageIncreased
     ) {
       // Message just sent (user input), force scroll
-      console.log("[ChatArea] after user send: force scrollToBottom");
       scrollToBottom();
     } else if (messageIncreased && isAtBottom) {
       // New incoming message (assistant, etc), scroll if we were at bottom
-      console.log("[ChatArea] new message while at bottom: scrollToBottom");
       scrollToBottom();
     }
     prevMsgLen.current = messages.length;
@@ -89,10 +90,24 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 
   // Always scroll whenever the component mounts (first render)
   useEffect(() => {
-    console.log("[ChatArea] mount, scroll to bottom");
     scrollToBottom();
     // eslint-disable-next-line
   }, []);
+
+  // Always scroll to bottom if a new chat is loaded (i.e., when the set of message ids changes dramatically)
+  useEffect(() => {
+    const ids = messages.map(m => m.id);
+    const prevIds = prevMessageIdsRef.current;
+    // Heuristic: if it "resets" (e.g. previous not a subset of new or vice versa), it's probably a new chat load
+    const isFreshLoad =
+      (prevIds.length > 0 && ids.length > 0 && (ids[0] !== prevIds[0] || ids.length < prevIds.length)) ||
+      (prevIds.length > 0 && ids.length === 0); // emptied means new chat
+    if (isFreshLoad) {
+      console.log("[ChatArea] Detected fresh chat load or new chat, scrolling to bottom.");
+      scrollToBottom();
+    }
+    prevMessageIdsRef.current = ids;
+  }, [messages]);
 
   // Debug logging: print all IDs before and after dedupe
   useEffect(() => {
@@ -121,3 +136,4 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
+
