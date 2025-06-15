@@ -1,6 +1,25 @@
 {
   "data": [
     {
+      "id": "google/gemini-2.0-flash-001",
+      "provider": "Google",
+      "canonical_slug": "google/gemini-2.0-flash-001",
+      "name": "Google: Gemini 2.0 Flash",
+      "context_length": 1048576,
+      "architecture": {
+        "modality": "text+image->text",
+        "input_modalities": ["text", "image", "file"],
+        "output_modalities": ["text"],
+        "tokenizer": "Gemini",
+        "instruct_type": null
+      },
+      "top_provider": {
+        "context_length": 1048576,
+        "max_completion_tokens": 8192,
+        "is_moderated": false
+      }
+    },
+    {
       "id": "google/gemini-2.5-pro-preview",
       "provider": "Google",
       "canonical_slug": "google/gemini-2.5-pro-preview-06-05",
@@ -244,25 +263,6 @@
       "top_provider": {
         "context_length": 131072,
         "max_completion_tokens": 16384,
-        "is_moderated": false
-      }
-    },
-    {
-      "id": "google/gemini-2.0-flash-001",
-      "provider": "Google",
-      "canonical_slug": "google/gemini-2.0-flash-001",
-      "name": "Google: Gemini 2.0 Flash",
-      "context_length": 1048576,
-      "architecture": {
-        "modality": "text+image->text",
-        "input_modalities": ["text", "image", "file"],
-        "output_modalities": ["text"],
-        "tokenizer": "Gemini",
-        "instruct_type": null
-      },
-      "top_provider": {
-        "context_length": 1048576,
-        "max_completion_tokens": 8192,
         "is_moderated": false
       }
     },
