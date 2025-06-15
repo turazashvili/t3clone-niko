@@ -364,39 +364,28 @@ export function useChat() {
       chatIdOverride?: string
     ) => {
       let effectiveChatId = chatIdOverride ?? currentChatId;
-
-      // 1. If new chat, create chat first.
-      if (!effectiveChatId) {
-        effectiveChatId = await createChatIfNeeded();
-        if (!effectiveChatId) return; // fail early
-        setCurrentChatId(effectiveChatId);
-        navigate(`/chat/${effectiveChatId}`);
-        // Wait a tick for navigation
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-
-      // 2. Then proceed to send the message as normal
       const contentToSend = inputOverride !== undefined ? inputOverride : inputValue;
-      console.log("handleSendMessage called", {
-        modelOverride,
-        webSearch,
-        attachedFiles,
-        inputOverride,
-        contentToSend,
-        user,
-        currentChatId: chatIdOverride ?? currentChatId
-      });
 
       if (!contentToSend.trim()) {
-        console.log("Early exit: contentToSend is empty", { contentToSend });
         return;
       }
       if (!user) {
-        console.log("Early exit: user not set");
         toast({ title: "Authentication Required", description: "Please log in to start chatting.", variant: "default" });
         setLoginOpen(true);
         return;
       }
+
+      if (!effectiveChatId) {
+        // Create a chat first
+        effectiveChatId = await createChatIfNeeded();
+        if (!effectiveChatId) return;
+        setCurrentChatId(effectiveChatId);
+        navigate(`/chat/${effectiveChatId}`);
+        // Wait for navigation to ensure route/state is correct
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+
+      // After chat is created and navigation happened, send the message as usual!
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
@@ -416,7 +405,7 @@ export function useChat() {
           if (triggerSidebarRefresh) triggerSidebarRefresh();
         },
         onNewChatId: (chatId: string) => {
-          // We don't need to navigate now, already handled above.
+          // Navigation is already handled above!
         },
       });
     },
