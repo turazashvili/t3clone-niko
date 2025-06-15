@@ -8,7 +8,6 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
-import { useAssistantStreamSession } from "@/hooks/useAssistantStreamSession";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
@@ -67,35 +66,6 @@ const Index = () => {
     return false;
   });
 
-  // --- NEW: Retrieve in-progress assistant stream session (resumable streaming) ---
-  const { partialAssistant, isStreaming } = useAssistantStreamSession({
-    currentChatId,
-    user,
-  });
-
-  // Compose visible messages: DB + partial assistant
-  const visibleMessages = React.useMemo(() => {
-    // Only add partialAssistant if needed and it's not already the last assistant
-    if (
-      partialAssistant &&
-      (!messages.length ||
-        messages[messages.length - 1].role !== "assistant" ||
-        (messages[messages.length - 1].role === "assistant" &&
-          (messages[messages.length - 1].content ?? "").trim() === ""))
-    ) {
-      return [
-        ...messages,
-        {
-          id: "partial-assistant",
-          role: "assistant" as const,
-          content: partialAssistant.content,
-          reasoning: partialAssistant.reasoning,
-        },
-      ] as typeof messages;
-    }
-    return messages;
-  }, [messages, partialAssistant]);
-
   return (
     <div className="relative min-h-screen w-full bg-transparent">
       <Sidebar
@@ -130,13 +100,13 @@ const Index = () => {
           `}>
             <div className={`flex-1 w-full`}>
               {/* Wait for profile loading */}
-              {visibleMessages.length === 0 && !isLoading && !inputValue.trim() ? (
+              {messages.length === 0 && !isLoading && !inputValue.trim() ? (
                 <EmptyState
                   onPromptClick={handleSetInputValueAndFocus}
                   user={userProfile ?? undefined}
                 />
               ) : (
-                <ChatArea messages={visibleMessages} isLoading={isLoading || isStreaming} />
+                <ChatArea messages={messages} isLoading={isLoading} />
               )}
             </div>
           </div>
