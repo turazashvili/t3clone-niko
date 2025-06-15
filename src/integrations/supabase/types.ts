@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      assistant_stream_sessions: {
+        Row: {
+          assistant_role: string
+          chat_id: string
+          created_at: string
+          id: string
+          last_chunk_at: string | null
+          message_id: string | null
+          openrouter_chunk_offset: number | null
+          status: string
+          streamed_content: string | null
+          streamed_reasoning: string | null
+          user_id: string
+        }
+        Insert: {
+          assistant_role?: string
+          chat_id: string
+          created_at?: string
+          id?: string
+          last_chunk_at?: string | null
+          message_id?: string | null
+          openrouter_chunk_offset?: number | null
+          status?: string
+          streamed_content?: string | null
+          streamed_reasoning?: string | null
+          user_id: string
+        }
+        Update: {
+          assistant_role?: string
+          chat_id?: string
+          created_at?: string
+          id?: string
+          last_chunk_at?: string | null
+          message_id?: string | null
+          openrouter_chunk_offset?: number | null
+          status?: string
+          streamed_content?: string | null
+          streamed_reasoning?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chats: {
         Row: {
           created_at: string

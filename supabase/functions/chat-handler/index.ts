@@ -6,7 +6,6 @@ const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'); // Use service role for DB operations
 
-// Add logs for debugging secrets presence
 console.log("Edge function startup secrets check:");
 console.log("OPENROUTER_API_KEY present?:", !!openRouterApiKey);
 console.log("SUPABASE_URL present?:", !!supabaseUrl);
@@ -65,6 +64,59 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// --------- Helper: Save assistant stream progress -----------
+
+async function upsertAssistantSession({
+  supabaseAdmin,
+  chat_id,
+  user_id,
+  streamed_content,
+  streamed_reasoning,
+  status = "streaming",
+  session_id,
+}) {
+  // Upsert session (by id if provided, else by chat_id + user_id + streaming status)
+  let upsertData = {
+    chat_id,
+    user_id,
+    streamed_content,
+    streamed_reasoning,
+    status,
+    last_chunk_at: new Date().toISOString(),
+  };
+  if (session_id) upsertData.id = session_id;
+
+  const { data, error } = await supabaseAdmin
+    .from("assistant_stream_sessions")
+    .upsert([upsertData], { onConflict: "id" })
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to upsert assistant_stream_sessions:", error);
+  }
+  return data;
+}
+
+async function updateAssistantSessionStatus({
+  supabaseAdmin,
+  session_id,
+  status,
+  message_id
+}) {
+  const updateData = { status };
+  if (message_id) updateData.message_id = message_id;
+  const { error } = await supabaseAdmin
+    .from("assistant_stream_sessions")
+    .update(updateData)
+    .eq("id", session_id);
+  if (error) {
+    console.error("Failed to update assistant_stream_sessions status:", error);
+  }
+}
+
+// ------------------------------------------------------------
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -86,7 +138,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // secret checks
     const missingSecrets = [];
     if (!openRouterApiKey) missingSecrets.push('OPENROUTER_API_KEY');
     if (!supabaseUrl) missingSecrets.push('SUPABASE_URL');
@@ -138,7 +189,6 @@ serve(async (req: Request) => {
       content: userMessageContent,
       model: model,
     };
-    // If attachments from client exist, map and add them as metadata for DB
     if (attachedFiles && Array.isArray(attachedFiles) && attachedFiles.length > 0) {
       userMsgInsertPayload.attachments = attachedFiles.map((f: any) => ({
         name: f.name,
@@ -151,7 +201,6 @@ serve(async (req: Request) => {
       .insert(userMsgInsertPayload);
     if (userMessageError) throw userMessageError;
 
-    // Add to conversation history
     let messageContent: any[] = [{ type: "text", text: userMessageContent }];
     if (attachedFiles && Array.isArray(attachedFiles)) {
       for (const f of attachedFiles) {
@@ -204,8 +253,6 @@ serve(async (req: Request) => {
         body.model = modelToUse + ":online";
       }
     }
-
-    // Plugins for PDFs if any
     if (messageContent.some((x: any) => x.type === "file")) {
       body.plugins = [
         {
@@ -215,7 +262,25 @@ serve(async (req: Request) => {
       ];
     }
 
-    // Start streaming from OpenRouter, proxying each chunk to the client as SSE in real-time.
+    // --- Begin assistant streaming session record ---
+    let streamSessionRow = await upsertAssistantSession({
+      supabaseAdmin,
+      chat_id: currentChatId,
+      user_id: userId,
+      streamed_content: "",
+      streamed_reasoning: "",
+      status: "streaming"
+    });
+    const assistantStreamSessionId = streamSessionRow?.id;
+    if (!assistantStreamSessionId) {
+      console.warn("Failed to create assistant_stream_sessions row - won't persist chunks incrementally.");
+    }
+
+    // Holders for stream progress
+    let assistantMessageContent = "";
+    let reasoningContent = "";
+
+    // --- Streaming from OpenRouter ---
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -231,13 +296,68 @@ serve(async (req: Request) => {
       throw new Error(`OpenRouter API error: ${errorData.error?.message || openRouterResponse.statusText}`);
     }
 
-    let assistantMessageContent = "";
-    let reasoningContent = "";
-
     // Set up an SSE stream so the client receives data as soon as it's available
     const encoder = new TextEncoder();
     const decoder = new TextDecoder();
 
+    // -- Background persistence logic --
+    async function persistStreamProgressPartial(content: string, reasoning: string) {
+      if (!assistantStreamSessionId) return;
+      await upsertAssistantSession({
+        supabaseAdmin,
+        chat_id: currentChatId,
+        user_id: userId,
+        streamed_content: content,
+        streamed_reasoning: reasoning,
+        session_id: assistantStreamSessionId,
+        status: "streaming",
+      });
+    }
+
+    // Function to mark session complete and write final message
+    async function persistStreamFinal(content: string, reasoning: string) {
+      if (!assistantStreamSessionId) return;
+      // Save final session chunk
+      await upsertAssistantSession({
+        supabaseAdmin,
+        chat_id: currentChatId,
+        user_id: userId,
+        streamed_content: content,
+        streamed_reasoning: reasoning,
+        session_id: assistantStreamSessionId,
+        status: "completed",
+      });
+      // Insert final message into messages table
+      const { data, error } = await supabaseAdmin
+        .from('messages')
+        .insert({
+          chat_id: currentChatId,
+          role: 'assistant',
+          content,
+          reasoning,
+          model: body.model,
+        })
+        .select()
+        .single();
+      if (error) {
+        console.error("Error saving final assistant message to messages:", error);
+      } else {
+        // Attach the message_id to session row for reference
+        await updateAssistantSessionStatus({
+          supabaseAdmin,
+          session_id: assistantStreamSessionId,
+          status: "completed",
+          message_id: data.id,
+        });
+      }
+    }
+
+    // Use this flag to buffer outgoing SSE to client, but background persist even if client disconnects
+    let clientConnectionClosed = false;
+    let lastPersistedLength = 0;
+    let persistTimeout: number | undefined;
+
+    // Write stream to client and persist to DB in the background
     return new Response(
       new ReadableStream({
         async start(controller) {
@@ -246,8 +366,15 @@ serve(async (req: Request) => {
             let done = false;
             let buffer = "";
 
-            // Send event for the new chatId
             controller.enqueue(encoder.encode(`event: chatId\ndata: ${currentChatId}\n\n`));
+
+            // Launch a background pinger that keeps saving progress at intervals (even after error/disconnect)
+            function backgroundPersistLoop() {
+              if (clientConnectionClosed) return;
+              persistStreamProgressPartial(assistantMessageContent, reasoningContent);
+              persistTimeout = setTimeout(backgroundPersistLoop, 1500);
+            }
+            backgroundPersistLoop();
 
             while (!done) {
               const { value, done: doneReading } = await reader.read();
@@ -272,10 +399,20 @@ serve(async (req: Request) => {
                       if (parsed.choices?.[0]?.delta?.reasoning !== undefined) {
                         reasoningContent += parsed.choices[0].delta.reasoning;
                         controller.enqueue(encoder.encode(`event: reasoning\ndata: ${JSON.stringify({ reasoning: reasoningContent })}\n\n`));
+                        // Persist every ~800 chars of content chunk or on significant update
+                        if (reasoningContent.length - lastPersistedLength > 800) {
+                          lastPersistedLength = reasoningContent.length;
+                          persistStreamProgressPartial(assistantMessageContent, reasoningContent);
+                        }
                       }
                       if (parsed.choices?.[0]?.delta?.content !== undefined) {
                         assistantMessageContent += parsed.choices[0].delta.content;
                         controller.enqueue(encoder.encode(`event: content\ndata: ${JSON.stringify({ content: parsed.choices[0].delta.content })}\n\n`));
+                        // Persist every ~800 chars of content chunk or on significant update
+                        if (assistantMessageContent.length - lastPersistedLength > 800) {
+                          lastPersistedLength = assistantMessageContent.length;
+                          persistStreamProgressPartial(assistantMessageContent, reasoningContent);
+                        }
                       }
                     } catch {
                       // ignore JSON parse errors
@@ -296,25 +433,46 @@ serve(async (req: Request) => {
               )
             );
             controller.close();
+            clientConnectionClosed = true;
+            if (persistTimeout) clearTimeout(persistTimeout);
 
-            // Persist to DB in the background—now saving content and reasoning in separate columns!
-            supabaseAdmin
-              .from('messages')
-              .insert({
-                chat_id: currentChatId,
-                role: 'assistant',
-                content: assistantMessageContent,
-                reasoning: reasoningContent,
-                model: body.model,
-              })
-              .then(({ error }) => {
-                if (error) console.error('DB error saving assistant message:', error);
-              });
+            // Background save to DB on completion
+            // Ensured to run even if client disconnects
+            Deno.systemSync?.waitUntil?.(persistStreamFinal(assistantMessageContent, reasoningContent)) ||
+              persistStreamFinal(assistantMessageContent, reasoningContent);
           } catch (e) {
             controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: e.message || "Internal error" })}\n\n`));
             controller.close();
+            clientConnectionClosed = true;
+            if (persistTimeout) clearTimeout(persistTimeout);
+            // Persist the last chunk as error
+            Deno.systemSync?.waitUntil?.(
+              upsertAssistantSession({
+                supabaseAdmin,
+                chat_id: currentChatId,
+                user_id: userId,
+                streamed_content: assistantMessageContent,
+                streamed_reasoning: reasoningContent,
+                session_id: assistantStreamSessionId,
+                status: "error",
+              })
+            ) || upsertAssistantSession({
+                supabaseAdmin,
+                chat_id: currentChatId,
+                user_id: userId,
+                streamed_content: assistantMessageContent,
+                streamed_reasoning: reasoningContent,
+                session_id: assistantStreamSessionId,
+                status: "error",
+              });
           }
         },
+        cancel() {
+          // Invoked if client disconnects before stream ends
+          clientConnectionClosed = true;
+          if (persistTimeout) clearTimeout(persistTimeout);
+          // Will still persist from the background loop above
+        }
       }),
       {
         status: 200,
