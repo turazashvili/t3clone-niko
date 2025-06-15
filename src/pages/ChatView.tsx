@@ -57,6 +57,16 @@ const ChatView = () => {
     setAttachedFiles([]);
   };
 
+  // Add input+focus handler for prompt clicks (same as Index)
+  const inputRef = React.useRef<any>(null);
+  const { setInputValue } = useChat();
+  const handleSetInputValueAndFocus = (value: string) => {
+    setInputValue(value);
+    setTimeout(() => {
+      inputRef.current?.focus?.();
+    }, 1);
+  };
+
   // --- Collapsed sidebar state ---
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window !== "undefined" && window.localStorage) {
@@ -106,7 +116,7 @@ const ChatView = () => {
           >
             <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
               {messages.length === 0 && !isLoading ? (
-                <EmptyState />
+                <EmptyState onPromptClick={handleSetInputValueAndFocus} />
               ) : (
                 <ChatArea messages={messages} isLoading={isLoading} />
               )}
@@ -118,7 +128,9 @@ const ChatView = () => {
             <div className="flex items-center justify-between mb-2">
               <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
             </div>
+            {/* Connect inputRef here if you want focus to work, optional */}
             <ChatInputBar
+              ref={inputRef}
               inputValue={inputValue}
               setInputValue={setInputValue}
               onSend={handleSend}
@@ -142,4 +154,3 @@ const ChatView = () => {
 };
 
 export default ChatView;
-

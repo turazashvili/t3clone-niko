@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useImperativeHandle, forwardRef } from "react";
 import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
@@ -79,6 +80,9 @@ const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [fileLimitError, setFileLimitError] = useState<string | null>(null);
+
+  // FIX: Add useFileUpload destructure here
+  const { upload: uploadFile, uploading, error: uploadError } = useFileUpload();
 
   // Expose focus method via ref
   useImperativeHandle(ref, () => ({
