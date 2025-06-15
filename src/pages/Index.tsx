@@ -105,6 +105,7 @@ const Index = () => {
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (
                 <EmptyState
                   onPromptClick={handleSetInputValueAndFocus}
+                  user={user}
                 />
               ) : (
                 <ChatArea messages={messages} isLoading={isLoading} />
