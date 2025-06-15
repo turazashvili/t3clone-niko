@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -8,7 +9,7 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
-import ShareChatButton from "@/components/ShareChatButton";
+// Removed: import ShareChatButton from "@/components/ShareChatButton";
 import ShareChatDialog from "@/components/ShareChatDialog";
 
 // Keep this in sync with Sidebar width!

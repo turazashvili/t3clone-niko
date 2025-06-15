@@ -9,7 +9,7 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
-import ShareChatButton from "@/components/ShareChatButton";
+// Removed: import ShareChatButton from "@/components/ShareChatButton";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
@@ -105,7 +105,7 @@ const ChatView = () => {
           <div className="flex items-center justify-between pt-4 pb-2 max-w-full sm:max-w-full md:max-w-3xl mx-auto px-2 sm:px-4">
             <div />
             {/* Only show if this is a valid chatId */}
-            <ShareChatButton chatId={chatId} />
+            {/* <ShareChatButton chatId={chatId} /> */}
           </div>
           <div className={`
             w-full
