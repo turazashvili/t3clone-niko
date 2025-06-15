@@ -23,6 +23,7 @@ export interface Message {
   reasoning?: string;
   attachedFiles?: UploadedFile[]; // UI usage
   chat_id?: string; // <------ Add this line
+  optimistic?: boolean; // <--- New flag for in-flight messages
 }
 
 export const MODEL_LIST = [
@@ -87,7 +88,27 @@ export function useChat() {
   }, []);
 
   // === NEW: Attach realtime chat syncing here ===
-  useMessagesRealtime(currentChatId, setMessages);
+  useMessagesRealtime(currentChatId, (msgs) => {
+    setMessages(prev => {
+      // For each incoming DB message, remove any optimistic message with the same role+content (and not a DB id)
+      const dbIds = new Set(msgs.map(m => m.id));
+      // Remove any optimistic user/assistant message that matches by role+content
+      const withoutOptimistic = prev.filter(m => {
+        // If it's a real DB message (no optimistic): always keep
+        if (!m.optimistic) return true;
+        // If a DB version of this message (role+content) is now present, remove
+        const match = msgs.some(dbm =>
+          dbm.role === m.role &&
+          dbm.content === m.content
+        );
+        return !match;
+      });
+      // Merge: start with DB messages (should be authoritative), then any leftover optimistic
+      // (but usually, there should be none at send time)
+      // For normal chat usage, just return DB messages.
+      return [...msgs, ...withoutOptimistic.filter(m => m.optimistic)];
+    });
+  });
 
   // Only for initial chat loading, NOT for sending
   const fetchChatMessages = useCallback(async (chatId: string) => {
@@ -95,7 +116,7 @@ export function useChat() {
     setIsLoading(true);
     const { data, error } = await supabase
       .from('messages')
-      .select('id, role, content, created_at, attachments, chat_id')
+      .select('id, role, content, created_at, attachments, chat_id, reasoning')
       .eq('chat_id', chatId)
       .order('created_at', { ascending: true });
 
@@ -104,14 +125,19 @@ export function useChat() {
       setMessages([]);
     } else {
       // On successful fetch: wipe and replace with only the DB messages (no leftover optimistic messages)
-      setMessages(
-        (data ?? []).map((raw) => {
-          // parseAssistantMessage may need to propagate chat_id now
-          // If it does not, we add it here:
-          const parsed = parseAssistantMessage(raw);
-          return { ...parsed, chat_id: raw.chat_id };
-        })
-      );
+      let dbMessages = (data ?? []).map((raw) => {
+        // parseAssistantMessage may need to propagate chat_id now
+        // If it does not, we add it here:
+        const parsed = parseAssistantMessage(raw);
+        return { ...parsed, chat_id: raw.chat_id };
+      });
+      
+      // Remove any local optimistic user or assistant message that matches (by role+content)
+      setMessages(prev => {
+        // Keep only DB messages. 
+        // Optionally, if there are any optimistic messages for ANOTHER new chat being composed, leave those. But here: wipe all.
+        return dbMessages;
+      });
     }
     setIsLoading(false);
   }, []);

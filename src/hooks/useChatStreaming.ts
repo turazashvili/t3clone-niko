@@ -24,6 +24,7 @@ const parseAssistantMessage = (msg: any) => {
     content: msg.content,
     reasoning: msg.reasoning, // just use directly
     attachedFiles,
+    // Never pass optimistic for DB message
   };
 };
 
@@ -61,6 +62,7 @@ export async function sendMessageStreaming({
     role: "user",
     content: inputValue,
     attachedFiles,
+    optimistic: true,      // <--- Mark as optimistic!
   };
 
   // Optimistically add user message in UI only (NOT in DB)
@@ -80,6 +82,7 @@ export async function sendMessageStreaming({
       role: "assistant",
       content: "",
       reasoning: "",
+      optimistic: true, // <--- Mark optimistic
     },
   ]);
 
