@@ -4,7 +4,7 @@ import PromptSwitcher from "@/components/PromptSwitcher";
 
 interface EmptyStateProps {
   onPromptClick: (text: string) => void;
-  user?: { full_name?: string | null }; // Now accepting user prop
+  user?: { full_name?: string | null };
 }
 
 // Get first name robustly

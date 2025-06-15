@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
 import ChatInputBar, { ChatInputBarRef } from "@/components/ChatInputBar";
@@ -19,6 +20,8 @@ const Index = () => {
     loginOpen,
     setLoginOpen,
     user,
+    userProfile,
+    profileLoading,
     currentChatId,
     messages,
     inputValue,
@@ -44,7 +47,6 @@ const Index = () => {
   // Handler to set input and focus the input bar
   const handleSetInputValueAndFocus = (value: string) => {
     setInputValue(value);
-    // Delay focus slightly to allow state to settle
     setTimeout(() => {
       chatInputBarRef.current?.focus();
     }, 1);
@@ -52,7 +54,6 @@ const Index = () => {
 
   // Enhanced handleSend to support attachments
   const handleSend = (model: string, webSearchEnabled: boolean) => {
-    // pass attachedFiles to useChat, then clear
     handleSendMessage(model, webSearchEnabled, attachedFiles);
     setAttachedFiles([]);
   };
@@ -102,10 +103,11 @@ const Index = () => {
             }`}
           >
             <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
+              {/* Wait for profile loading */}
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (
                 <EmptyState
                   onPromptClick={handleSetInputValueAndFocus}
-                  user={user}
+                  user={userProfile ?? undefined}
                 />
               ) : (
                 <ChatArea messages={messages} isLoading={isLoading} />

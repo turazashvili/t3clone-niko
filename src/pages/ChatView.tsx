@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -23,6 +24,8 @@ const ChatView = () => {
     loginOpen,
     setLoginOpen,
     user,
+    userProfile,
+    profileLoading,
     setCurrentChatId,
     currentChatId,
     messages,
@@ -40,7 +43,6 @@ const ChatView = () => {
     handleSignOut,
   } = useChat();
 
-  // Set current chat by chatId from URL
   useEffect(() => {
     if (chatId && chatId !== currentChatId) {
       setCurrentChatId(chatId);
@@ -113,8 +115,9 @@ const ChatView = () => {
             }`}
           >
             <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
+              {/* Wait for profile loading */}
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (
-                <EmptyState onPromptClick={handleSetInputValueAndFocus} user={user} />
+                <EmptyState onPromptClick={handleSetInputValueAndFocus} user={userProfile ?? undefined} />
               ) : (
                 <ChatArea messages={messages} isLoading={isLoading} />
               )}

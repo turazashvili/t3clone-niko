@@ -38,6 +38,10 @@ export function useChat() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
+  // NEW: Profile fetched from Supabase (NOT auth)
+  const [userProfile, setUserProfile] = useState<{ full_name?: string | null } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -75,6 +79,30 @@ export function useChat() {
     return () => subscription.unsubscribe();
     // eslint-disable-next-line
   }, []);
+
+  // Fetch profile when user changes
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user?.id) {
+        setProfileLoading(true);
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (data) {
+          setUserProfile({ full_name: data.full_name });
+        } else {
+          setUserProfile(null);
+        }
+        setProfileLoading(false);
+      } else {
+        setUserProfile(null);
+        setProfileLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   // === NEW: Attach realtime chat syncing here ===
   useMessagesRealtime(currentChatId, setMessages);
@@ -434,7 +462,7 @@ export function useChat() {
 
   return {
     loginOpen, setLoginOpen,
-    session, user,
+    session, user, userProfile, profileLoading, // added
     currentChatId, setCurrentChatId,
     messages, setMessages,
     inputValue, setInputValue,
