@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
@@ -54,25 +53,24 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     return () => sc.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Scroll on incoming message only if user is at (or near) the bottom,
-  // OR if a new message was sent by the user (loading just finished)
+  // Modified effect for scrolling behavior
   useEffect(() => {
     const sc = scrollContainerRef.current;
     if (!sc) return;
 
-    // 1. When user sends/is sending their own message (isLoading from true to false on new message), scroll always
+    // Always scroll to bottom if user just sent a message (isLoading went from true to false and message count increased)
     if (
       prevIsLoading.current === true &&
       isLoading === false &&
       messages.length > prevMsgLen.current
     ) {
-      sc.scrollTop = sc.scrollHeight;
+      sc.scrollTop = sc.scrollHeight; // direct jump, always
       prevMsgLen.current = messages.length;
       prevIsLoading.current = isLoading;
       return;
     }
 
-    // 2. When assistant/user adds a message—but only auto-scroll if user at bottom
+    // For other (assistant, system etc) incoming messages, scroll only if user is at (or near) bottom
     if (
       messages.length > prevMsgLen.current &&
       isAtBottom
@@ -106,4 +104,3 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
-
