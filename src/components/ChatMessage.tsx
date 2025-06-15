@@ -111,6 +111,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
   // Cancel edit
   const handleEditCancel = () => setIsEditing(false);
 
+  // Style user and assistant message container for consistent button positioning
   return (
     <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
       {/* 
@@ -137,7 +138,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   "p-3",
                   "rounded-xl",
                   "flex",
-                  "flex-col",
+                  "flex-col", // vertical layout, so text and actions are stacked
                   "items-start",
                   "gap-2",
                   "relative",
@@ -172,7 +173,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                 <CollapsibleTrigger asChild>
                   <button className="flex items-center gap-2 text-xs text-blue-200 font-semibold bg-[#232240] hover:bg-[#2f2b50] rounded px-3 py-2 mb-1 transition w-full">
                     <ChevronDown className={`w-3 h-3 mr-1 transition-transform ${reasonOpen ? "rotate-180" : ""}`} />
-                    Model’s thinking (reasoning)
+                    Model's thinking (reasoning)
                     <span className="ml-auto text-[10px] opacity-60">(Click to {reasonOpen ? "hide" : "show"})</span>
                   </button>
                 </CollapsibleTrigger>
@@ -314,7 +315,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
           </div>
           {/* Buttons for user message */}
           {msg.role === 'user' && !isEditing && (
-            <div className="absolute bottom-1 right-2">
+            <div className="w-full flex justify-end mt-2">
               <MessageActionsBar
                 messageContent={msg.content}
                 onRetry={handleRetry}
