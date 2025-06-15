@@ -400,10 +400,10 @@ export function useChat() {
         // No waiting; start streaming immediately!
       }
 
-      // Only NOW start streaming
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
+      // Send to edge function ONLY - do NOT add any optimistic messages!
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -412,23 +412,23 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        setMessages,
+        setMessages, // Realtime events will handle message population in the UI now
         setIsLoading,
         attachedFiles: attachedFiles || [],
         onFirstMessageDone: () => {
           setSidebarRefreshKey(Date.now());
           if (triggerSidebarRefresh) triggerSidebarRefresh();
-          // Only now, after the first message+reply from assistant has streamed in, navigate
           if (isNewChat && createdChatId) {
             navigate(`/chat/${createdChatId}`);
           }
         },
         onNewChatId: (_chatId: string) => {
-          // No action needed (already handled)
+          // No action needed
         },
+        // Don't set any optimistic flags/messages!
       });
 
-      // Do NOT manually fetch chat messages here; realtime will update via useMessagesRealtime.
+      // No further action needed, realtime will update via useMessagesRealtime.
     },
     [
       inputValue,
@@ -444,7 +444,6 @@ export function useChat() {
       setMessages,
       navigate,
       createChatIfNeeded,
-      // waitForNavigationToChat
     ]
   );
 
