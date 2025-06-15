@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
@@ -14,18 +15,15 @@ interface ChatAreaProps {
 }
 
 // Strong deduplication: Remove any duplicate user (or assistant) messages by id.
-// (If two have the same id, only one will render, period.)
 const dedupeMessages = (messages: Message[]) => {
-  // Use a Map keyed by message id for *all* messages
   const byId = new Map<string, Message>();
   for (const msg of messages) {
-    // Last one wins (newest for each id)
     byId.set(msg.id, msg);
   }
   return Array.from(byId.values());
 };
 
-const SCROLL_THRESHOLD = 80; // px, how close to bottom still counts as "at bottom"
+const SCROLL_THRESHOLD = 80;
 
 const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
@@ -33,101 +31,68 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 
   // Track whether user is at the bottom (windowed threshold)
   const [isAtBottom, setIsAtBottom] = useState(true);
-
-  // Track previous message count and loading state
   const prevMsgLen = useRef<number>(messages.length);
   const prevIsLoading = useRef<boolean>(isLoading);
 
-  // Track previous last message role to detect user sends
-  const prevLastMessageRole = useRef<string | undefined>(undefined);
-
-  // Function to scroll to the bottom (with diagnostics)
+  // Scroll-to-bottom function with diagnostics
   const scrollToBottom = () => {
     const sc = scrollContainerRef.current;
     if (sc) {
       console.log("[ChatArea] scrollToBottom called");
-      console.log("  scrollTop before:", sc.scrollTop, "  clientHeight:", sc.clientHeight, "  scrollHeight:", sc.scrollHeight);
       sc.scrollTop = sc.scrollHeight;
       setTimeout(() => {
         if (scrollContainerRef.current) {
           console.log("  scrollTop after:", scrollContainerRef.current.scrollTop);
         }
       }, 100);
-    } else {
-      console.log("[ChatArea] scrollToBottom: no scrollContainerRef");
     }
   };
 
-  // Monitor scroll position to update isAtBottom state
+  // Monitor scroll position to maintain isAtBottom state
   useEffect(() => {
     const sc = scrollContainerRef.current;
     if (!sc) return;
-
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = sc;
       const atBottom =
         scrollHeight - (scrollTop + clientHeight) <= SCROLL_THRESHOLD;
       setIsAtBottom(atBottom);
     };
-
     sc.addEventListener("scroll", handleScroll);
-    // Check immediately (user might land mid-scroll on load)
     handleScroll();
-
     return () => sc.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Modified effect for scrolling behavior
+  // Always scroll on new message if user is at (or near) the bottom
   useEffect(() => {
     const sc = scrollContainerRef.current;
     if (!sc) return;
 
-    // Always scroll to bottom if user just sent a message (isLoading went from true to false and message count increased)
+    const messageIncreased = messages.length > prevMsgLen.current;
+    // Always scroll to bottom on user send (user isLoading -> false and messageIncreased)
     if (
       prevIsLoading.current === true &&
       isLoading === false &&
-      messages.length > prevMsgLen.current
+      messageIncreased
     ) {
-      sc.scrollTop = sc.scrollHeight; // direct jump, always
-      prevMsgLen.current = messages.length;
-      prevIsLoading.current = isLoading;
-      return;
-    }
-
-    // For other (assistant, system etc) incoming messages, scroll only if user is at (or near) bottom
-    if (
-      messages.length > prevMsgLen.current &&
-      isAtBottom
-    ) {
-      sc.scrollTop = sc.scrollHeight;
+      // Message just sent (user input), force scroll
+      console.log("[ChatArea] after user send: force scrollToBottom");
+      scrollToBottom();
+    } else if (messageIncreased && isAtBottom) {
+      // New incoming message (assistant, etc), scroll if we were at bottom
+      console.log("[ChatArea] new message while at bottom: scrollToBottom");
+      scrollToBottom();
     }
     prevMsgLen.current = messages.length;
     prevIsLoading.current = isLoading;
-    // eslint-disable-next-line
   }, [messages, isLoading, isAtBottom]);
 
-  // Enhanced debug effect for user message scroll event
+  // Always scroll whenever the component mounts (first render)
   useEffect(() => {
-    const messagesLen = messages.length;
-    const lastMsg = messagesLen > 0 ? messages[messagesLen - 1] : undefined;
-    const prevRole = prevLastMessageRole.current;
-
-    console.log("[ChatArea] useEffect run: messages.length =", messagesLen);
-    if (lastMsg) {
-      console.log("  lastMsg.id:", lastMsg.id, "lastMsg.role:", lastMsg.role);
-    }
-    console.log("  prevLastMessageRole.current:", prevRole);
-
-    if (
-      messagesLen > 0 &&
-      lastMsg?.role === "user" &&
-      prevRole !== "user"
-    ) {
-      console.log("[ChatArea] Detected new user message. Trigger scrollToBottom.");
-      scrollToBottom();
-    }
-    prevLastMessageRole.current = lastMsg?.role;
-  }, [messages]);
+    console.log("[ChatArea] mount, scroll to bottom");
+    scrollToBottom();
+    // eslint-disable-next-line
+  }, []);
 
   // Debug logging: print all IDs before and after dedupe
   useEffect(() => {
@@ -136,7 +101,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     console.log("[ChatArea] deduped.length:", deduped.length, "deduped IDs:", deduped.map(m => m.id));
   }, [messages]);
 
-  // Dedupe by id before rendering
   const dedupedMessages = dedupeMessages(messages);
 
   return (
@@ -146,11 +110,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
       style={{ outline: "none", WebkitOverflowScrolling: "touch", minHeight: 0 }}
       tabIndex={0}
     >
-      <div className="
-        mx-auto px-2 sm:px-4 space-y-4 w-full max-w-full md:max-w-3xl
-      ">
+      <div className="mx-auto px-2 sm:px-4 space-y-4 w-full max-w-full md:max-w-3xl">
         {dedupedMessages.map((msg) => (
-          // Ensure always unique key!
           <ChatMessage key={msg.id} msg={msg} />
         ))}
         <div ref={messagesEndRef} />
