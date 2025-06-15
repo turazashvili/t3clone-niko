@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
@@ -14,28 +13,16 @@ interface ChatAreaProps {
   isLoading: boolean;
 }
 
-// Enhanced deduplication by role+content for user messages, fallback to id for assistants
+// Strong deduplication: Remove any duplicate user (or assistant) messages by id.
+// (If two have the same id, only one will render, period.)
 const dedupeMessages = (messages: Message[]) => {
-  const userSet = new Set<string>();
-  const assistantSet = new Set<string>();
-  const deduped: Message[] = [];
+  // Use a Map keyed by message id for *all* messages
+  const byId = new Map<string, Message>();
   for (const msg of messages) {
-    if (msg.role === "user") {
-      // Dedupe user messages by content+role+created_at within a 60s window
-      const tag = `${msg.role}:${msg.content.trim()}:${msg.created_at?.slice(0, 16)}`;
-      if (!userSet.has(tag)) {
-        userSet.add(tag);
-        deduped.push(msg);
-      }
-    } else {
-      // For assistant, dedupe strictly by id
-      if (!assistantSet.has(msg.id)) {
-        assistantSet.add(msg.id);
-        deduped.push(msg);
-      }
-    }
+    // Last one wins (newest for each id)
+    byId.set(msg.id, msg);
   }
-  return deduped;
+  return Array.from(byId.values());
 };
 
 const SCROLL_THRESHOLD = 80; // px, how close to bottom still counts as "at bottom"
@@ -99,12 +86,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     // eslint-disable-next-line
   }, [messages, isLoading, isAtBottom]);
 
-  // Debug logging
+  // Debug logging: print all IDs before and after dedupe
   useEffect(() => {
-    console.log("ChatArea messages", messages);
+    const deduped = dedupeMessages(messages);
+    console.log("[ChatArea] messages.length:", messages.length, "IDs:", messages.map(m => m.id));
+    console.log("[ChatArea] deduped.length:", deduped.length, "deduped IDs:", deduped.map(m => m.id));
   }, [messages]);
 
-  // Dedupe messages before rendering
+  // Dedupe by id before rendering
   const dedupedMessages = dedupeMessages(messages);
 
   return (
@@ -117,8 +106,9 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
       <div className="
         mx-auto px-2 sm:px-4 space-y-4 w-full max-w-full md:max-w-3xl
       ">
-        {dedupedMessages.map((msg, index) => (
-          <ChatMessage key={msg.id || index} msg={msg} />
+        {dedupedMessages.map((msg) => (
+          // Ensure always unique key!
+          <ChatMessage key={msg.id} msg={msg} />
         ))}
         <div ref={messagesEndRef} />
       </div>
@@ -127,4 +117,3 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
-
