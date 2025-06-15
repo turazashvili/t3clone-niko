@@ -31,4 +31,4 @@ const DotLoader = () => (
   </div>
 );
 
-export default DotLoader; 
+export default DotLoader;
