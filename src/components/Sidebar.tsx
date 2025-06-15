@@ -19,6 +19,8 @@ interface SidebarProps {
   userId?: string | null;
   onSignOutClick?: () => void;
   triggerRefresh?: any;
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
 }
 
 // Key for localStorage
@@ -33,18 +35,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   userId,
   onSignOutClick,
   triggerRefresh,
+  collapsed,
+  setCollapsed,
 }) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
-
-  // Changed: Initialize from localStorage, fallback to false if not set
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-      return stored === "true";
-    }
-    return false;
-  });
 
   const navigate = useNavigate();
   const { refreshKey: sidebarRefreshKey } = useSidebarSync(userId);
@@ -99,6 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           className="w-10 h-10 flex items-center justify-center rounded-md bg-[#2d1a3d] hover:bg-[#23142e] transition shadow"
           onClick={() => {
             onNewChatClick?.();
+            // remain collapsed but nav to /
             navigate("/");
           }}
           disabled={!userId}

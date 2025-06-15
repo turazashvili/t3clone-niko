@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -11,6 +12,8 @@ import { UploadedFile } from "@/hooks/useFileUpload";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
+
+const SIDEBAR_COLLAPSED_KEY = "t3chat_sidebar_collapsed";
 
 const Index = () => {
   const {
@@ -43,6 +46,15 @@ const Index = () => {
     setAttachedFiles([]);
   };
 
+  // --- Collapsed sidebar state ---
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      return stored === "true";
+    }
+    return false;
+  });
+
   return (
     <div className="relative min-h-screen w-full bg-transparent">
       {/* Fix Sidebar */}
@@ -53,22 +65,43 @@ const Index = () => {
         userId={user?.id}
         onSignOutClick={handleSignOut}
         triggerRefresh={sidebarRefreshKey}
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
       />
-      {/* Main content with left margin = sidebar width */}
+      {/* Main content */}
       <main
-        className="flex flex-col min-h-screen"
-        style={{ marginLeft: SIDEBAR_WIDTH }}
+        className={`flex flex-col min-h-screen transition-all duration-200 ${
+          collapsed
+            ? "ml-0"
+            : ""
+        }`}
+        style={
+          collapsed
+            ? { marginLeft: 0 }
+            : { marginLeft: SIDEBAR_WIDTH }
+        }
       >
-        <div className="flex-1 flex flex-col min-h-0">
-          {messages.length === 0 && !isLoading ? (
-            <EmptyState />
-          ) : (
-            <ChatArea messages={messages} isLoading={isLoading} />
-          )}
+        <div className={`flex-1 flex flex-col min-h-0 ${
+          collapsed ? "items-center" : ""
+        }`}>
+          <div className={`w-full ${
+              collapsed
+                ? "flex justify-center"
+                : ""
+            }`}
+          >
+            <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
+              {messages.length === 0 && !isLoading ? (
+                <EmptyState />
+              ) : (
+                <ChatArea messages={messages} isLoading={isLoading} />
+              )}
+            </div>
+          </div>
         </div>
         {/* Chat Input Area */}
         <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6">
-          <div className="max-w-3xl mx-auto px-4">
+          <div className={`mx-auto px-4 ${collapsed ? "max-w-3xl" : ""}`}>
             <div className="flex items-center justify-between mb-2">
               <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
             </div>
@@ -96,3 +129,4 @@ const Index = () => {
 };
 
 export default Index;
+
