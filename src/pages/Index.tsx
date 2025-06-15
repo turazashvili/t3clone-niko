@@ -97,7 +97,18 @@ const Index = () => {
             w-full 
             ${collapsed ? "flex justify-center" : ""}
             max-w-full sm:max-w-full md:max-w-3xl mx-auto
+            relative
           `}>
+            {/* Sticky top-right share button */}
+            <div className="absolute right-2 top-2 z-40">
+              {/* Add a slight fallback so no share button is shown in empty/new chat */}
+              {currentChatId && (
+                <React.Suspense fallback={null}>
+                  {/* Dynamically import to avoid initial load bloat if you want */}
+                  <ShareChatButton chatId={currentChatId} />
+                </React.Suspense>
+              )}
+            </div>
             <div className={`flex-1 w-full`}>
               {/* Wait for profile loading */}
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (

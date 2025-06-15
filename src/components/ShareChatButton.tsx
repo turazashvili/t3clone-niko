@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Copy, Share as ShareIcon } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,46 +119,44 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
     setLoading(false);
   };
 
+  // Design: compact top-right sticky group, button then badge
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col gap-1 items-end w-fit">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* Show spinner if fetching state */}
             <span>
               {fetching ? (
                 <Button
                   variant="outline"
-                  className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground"
+                  className="px-5 py-2 rounded-xl text-base font-medium shadow border border-accent bg-background text-accent-foreground"
                   size="sm"
                   disabled
                   type="button"
+                  style={{ minWidth: 190, justifyContent: "flex-start" }}
                   data-testid="share-chat-btn"
                 >
-                  <span className="font-medium animate-pulse">...</span>
+                  <span className="font-medium animate-pulse text-base">...</span>
                 </Button>
               ) : publicState ? (
-                // Public: Show share and make private
                 <span className="flex flex-row gap-2">
                   <Button
                     variant="outline"
-                    className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
+                    className="px-5 py-2 rounded-xl text-base font-medium shadow border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
                     size="sm"
                     title="Copy public link"
                     onClick={handleCopy}
                     aria-label="Share chat"
                     type="button"
+                    style={{ minWidth: 190, justifyContent: "flex-start" }}
                     disabled={loading}
-                    data-testid="share-chat-btn"
                   >
-                    <ShareIcon size={18} />
-                    <span className="font-medium">
-                      {copied ? "Copied!" : "Share"}
-                    </span>
+                    <Upload size={20} strokeWidth={2.1} className="mr-2 -ml-1" />
+                    <span>{copied ? "Copied!" : "Share"}</span>
                   </Button>
                   <Button
                     variant="destructive"
-                    className="px-3 py-2 gap-2 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive-foreground hover:bg-destructive/30"
+                    className="px-3 py-2 rounded-xl border border-destructive/50 bg-destructive/10 text-destructive-foreground hover:bg-destructive/30 text-sm"
                     size="sm"
                     onClick={handleMakePrivate}
                     disabled={loading}
@@ -166,27 +165,27 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
                   </Button>
                 </span>
               ) : (
-                // Not public: offer to make public and share in one
                 <Button
                   variant="outline"
-                  className="px-3 py-2 gap-2 rounded-lg shadow-sm border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
+                  className="px-5 py-2 rounded-xl text-base font-medium shadow border border-accent bg-background text-accent-foreground hover:bg-accent hover:text-primary transition-all"
                   size="sm"
                   title="Make public & share link"
                   onClick={handleMakePublicAndShare}
                   aria-label="Make public and share chat"
                   type="button"
+                  style={{ minWidth: 220, justifyContent: "flex-start" }}
                   disabled={loading}
                   data-testid="share-chat-btn"
                 >
-                  <ShareIcon size={18} />
-                  <span className="font-medium">
+                  <Upload size={20} strokeWidth={2.1} className="mr-2 -ml-1" />
+                  <span>
                     {loading ? "Making Public..." : "Make Public & Share"}
                   </span>
                 </Button>
               )}
             </span>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent side="bottom" align="end" className="text-xs">
             <span>
               {publicState === null
                 ? "Checking sharing status..."
@@ -197,14 +196,32 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+
+      {/* Improved badge design */}
       {publicState === false && (
-        <span className="text-xs mt-1 text-destructive-foreground/90 bg-destructive/10 border border-destructive/20 px-2 py-1 rounded-sm animate-pulse">
-          This chat is <b>not public</b>, so others won't be able to view it.
+        <span
+          className="text-[15px] mt-1 text-destructive-foreground/90 bg-destructive/10 border border-destructive/30 px-3 py-1 rounded-md font-normal"
+          style={{
+            fontWeight: 400,
+            boxShadow: "none",
+            maxWidth: 350,
+            whiteSpace: "pre-line",
+          }}
+        >
+          This chat is <b className="font-semibold">not public</b>, so others won't be able to view it.
         </span>
       )}
       {publicState === true && (
-        <span className="text-xs mt-1 text-green-900/90 bg-green-200/60 border border-green-500/20 px-2 py-1 rounded-sm">
-          This chat is <b>public</b> and accessible via link.
+        <span
+          className="text-[15px] mt-1 text-green-900/90 bg-green-200/60 border border-green-500/20 px-3 py-1 rounded-md font-normal"
+          style={{
+            fontWeight: 400,
+            boxShadow: "none",
+            maxWidth: 350,
+            whiteSpace: "pre-line",
+          }}
+        >
+          This chat is <b className="font-semibold">public</b> and accessible via link.
         </span>
       )}
     </div>
@@ -212,3 +229,4 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
 };
 
 export default ShareChatButton;
+
