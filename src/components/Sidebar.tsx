@@ -1,4 +1,5 @@
-import { LogIn, Plus, Search, MessageSquare, Loader2, LogOut } from "lucide-react";
+
+import { Menu, Plus, Search, MessageSquare, Loader2, LogOut, LogIn } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -17,10 +18,11 @@ interface SidebarProps {
   onLoadChat?: (chatId: string) => void;
   userId?: string | null;
   onSignOutClick?: () => void;
-  triggerRefresh?: any; // Add this prop
+  triggerRefresh?: any;
 }
 
 const SIDEBAR_WIDTH = 290;
+const SIDEBAR_COLLAPSED_WIDTH = 54;
 
 const Sidebar: React.FC<SidebarProps> = ({
   onLoginClick,
@@ -32,11 +34,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
-  // === Use custom sidebar sync hook ===
   const { refreshKey: sidebarRefreshKey } = useSidebarSync(userId);
-  
-  // Fetch chats on refreshKey change (sync engine OR manual)
+
   useEffect(() => {
     async function fetchRecentChats() {
       if (!userId) {
@@ -60,13 +61,55 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     fetchRecentChats();
   }, [userId, sidebarRefreshKey, triggerRefresh]);
-  
+
+  // Collapsed sidebar content
+  if (collapsed) {
+    return (
+      <aside
+        className="fixed left-0 top-0 z-30 h-screen bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-0 py-5 flex flex-col justify-between items-stretch"
+        style={{ width: SIDEBAR_COLLAPSED_WIDTH }}
+      >
+        <div className="flex flex-col items-center space-y-3">
+          <button
+            aria-label="Expand sidebar"
+            className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-[#23142e] transition"
+            onClick={() => setCollapsed(false)}
+          >
+            <Menu size={22} color="#dec9f7" />
+          </button>
+        </div>
+        <div className="flex flex-col items-center space-y-3 mb-2">
+          <button
+            aria-label="New chat"
+            className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-[#23142e] transition"
+            onClick={() => {
+              onNewChatClick?.();
+              navigate("/");
+            }}
+            disabled={!userId}
+            style={{ color: "#dec9f7" }}
+          >
+            <Plus size={22} />
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
+  // Expanded sidebar content
   return (
     <aside
-      className={`fixed left-0 top-0 z-30 h-screen w-[${SIDEBAR_WIDTH}px] bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5 flex flex-col`}
+      className="fixed left-0 top-0 z-30 h-screen bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5 flex flex-col"
       style={{ width: SIDEBAR_WIDTH }}
     >
       <div className="flex items-center gap-2 mb-6 select-none">
+        <button
+          aria-label="Collapse sidebar"
+          className="mr-2 w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#23142e] transition"
+          onClick={() => setCollapsed(true)}
+        >
+          <Menu size={20} color="#dec9f7" />
+        </button>
         <span className="font-bold tracking-wide text-xl text-white">
           T3
           <span className="text-accent font-bold">.chat</span>
@@ -111,7 +154,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               key={chat.id}
               className="py-2 px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
               onClick={() => {
-                // Navigate to /chat/:chatId AND optionally call onLoadChat
                 navigate(`/chat/${chat.id}`);
                 onLoadChat?.(chat.id);
               }}
