@@ -91,6 +91,16 @@ const Index = () => {
             : { marginLeft: SIDEBAR_WIDTH }
         }
       >
+        {/* --- ABSOLUTELY POSITIONED SHARE BUTTON: top-right of chat panel --- */}
+        <div className="absolute z-50 top-4 right-6 flex flex-col items-end pointer-events-auto">
+          {/* Add a slight fallback so no share button is shown in empty/new chat */}
+          {currentChatId && (
+            <React.Suspense fallback={null}>
+              {/* Dynamically import to avoid initial load bloat if you want */}
+              <ShareChatButton chatId={currentChatId} />
+            </React.Suspense>
+          )}
+        </div>
         <div className={`flex-1 flex flex-col min-h-0 ${
           collapsed ? "items-center" : ""
         }`}>
@@ -100,16 +110,7 @@ const Index = () => {
             max-w-full sm:max-w-full md:max-w-3xl mx-auto
             relative
           `}>
-            {/* Sticky top-right share button */}
-            <div className="absolute right-2 top-2 z-40">
-              {/* Add a slight fallback so no share button is shown in empty/new chat */}
-              {currentChatId && (
-                <React.Suspense fallback={null}>
-                  {/* Dynamically import to avoid initial load bloat if you want */}
-                  <ShareChatButton chatId={currentChatId} />
-                </React.Suspense>
-              )}
-            </div>
+            {/* Removed previous share button slot */}
             <div className={`flex-1 w-full`}>
               {/* Wait for profile loading */}
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (
