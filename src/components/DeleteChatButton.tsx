@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Trash } from "lucide-react";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DeleteChatButtonProps {
   chatId: string;
@@ -16,13 +17,20 @@ const DeleteChatButton: React.FC<DeleteChatButtonProps> = ({ chatId, onDeleted }
   const handleDelete = async () => {
     setLoading(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        toast({ title: "Delete failed", description: "User auth expired, please log in again.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
       const resp = await fetch(
         "https://tahxsobdcnbbqqonkhup.functions.supabase.co/delete-chat",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("sb-access-token") || ""}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({ chatId }),
         }
@@ -75,3 +83,4 @@ const DeleteChatButton: React.FC<DeleteChatButtonProps> = ({ chatId, onDeleted }
 };
 
 export default DeleteChatButton;
+
