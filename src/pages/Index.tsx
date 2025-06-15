@@ -8,6 +8,7 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
+import ShareChatButton from "@/components/ShareChatButton"; // <-- ADDED THIS IMPORT
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
