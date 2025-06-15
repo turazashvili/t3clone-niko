@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useLayoutEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
 interface Message {
@@ -34,22 +34,40 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   const prevMsgLen = useRef<number>(messages.length);
   const prevIsLoading = useRef<boolean>(isLoading);
 
-  // This tracks the previous chat id or the set of message ids (for new chat detection)
+  // Track previous message IDs for new chat detection
   const prevMessageIdsRef = useRef<string[]>(messages.map(m => m.id));
 
-  // Scroll-to-bottom function with diagnostics
+  // Scroll-to-bottom function with diagnostics (used for regular message flow)
   const scrollToBottom = () => {
     const sc = scrollContainerRef.current;
     if (sc) {
       sc.scrollTop = sc.scrollHeight;
       setTimeout(() => {
         if (scrollContainerRef.current) {
-          // Diagnostic
           console.log("[ChatArea] scrollToBottom, final scrollTop:", scrollContainerRef.current.scrollTop);
         }
       }, 100);
     }
   };
+
+  // --- SYNCHRONOUS SCROLL ON NEW CHAT LOAD: useLayoutEffect ---
+  useLayoutEffect(() => {
+    const ids = messages.map(m => m.id);
+    const prevIds = prevMessageIdsRef.current;
+    const isFreshLoad =
+      (prevIds.length > 0 && ids.length > 0 && (ids[0] !== prevIds[0] || ids.length < prevIds.length)) ||
+      (prevIds.length > 0 && ids.length === 0); // emptied means new chat
+    if (isFreshLoad) {
+      const sc = scrollContainerRef.current;
+      if (sc) {
+        // Instantly jump to bottom
+        sc.scrollTop = sc.scrollHeight;
+        console.log("[ChatArea] useLayoutEffect: direct scroll to bottom for new chat load, scrollTop:", sc.scrollTop);
+      }
+    }
+    prevMessageIdsRef.current = ids;
+  }, [messages]);
+  // --- END SYNCHRONOUS SCROLL ---
 
   // Monitor scroll position to maintain isAtBottom state
   useEffect(() => {
@@ -78,10 +96,8 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
       isLoading === false &&
       messageIncreased
     ) {
-      // Message just sent (user input), force scroll
       scrollToBottom();
     } else if (messageIncreased && isAtBottom) {
-      // New incoming message (assistant, etc), scroll if we were at bottom
       scrollToBottom();
     }
     prevMsgLen.current = messages.length;
@@ -93,21 +109,6 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     scrollToBottom();
     // eslint-disable-next-line
   }, []);
-
-  // Always scroll to bottom if a new chat is loaded (i.e., when the set of message ids changes dramatically)
-  useEffect(() => {
-    const ids = messages.map(m => m.id);
-    const prevIds = prevMessageIdsRef.current;
-    // Heuristic: if it "resets" (e.g. previous not a subset of new or vice versa), it's probably a new chat load
-    const isFreshLoad =
-      (prevIds.length > 0 && ids.length > 0 && (ids[0] !== prevIds[0] || ids.length < prevIds.length)) ||
-      (prevIds.length > 0 && ids.length === 0); // emptied means new chat
-    if (isFreshLoad) {
-      console.log("[ChatArea] Detected fresh chat load or new chat, scrolling to bottom.");
-      scrollToBottom();
-    }
-    prevMessageIdsRef.current = ids;
-  }, [messages]);
 
   // Debug logging: print all IDs before and after dedupe
   useEffect(() => {
