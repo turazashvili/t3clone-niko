@@ -8,7 +8,7 @@ interface SidebarChatTitleProps {
 }
 
 /**
- * Shows truncated title, and on hover, shows full title in a styled tooltip.
+ * Shows truncated title, and on hover, shows full title in a styled tooltip under cursor.
  * Tooltip appears only if content overflows.
  */
 const SidebarChatTitle: React.FC<SidebarChatTitleProps> = ({ title, fallback }) => {
@@ -18,7 +18,6 @@ const SidebarChatTitle: React.FC<SidebarChatTitleProps> = ({ title, fallback }) 
   useEffect(() => {
     const el = spanRef.current;
     if (el) {
-      // Detect overflow (truncation)
       setIsTruncated(el.scrollWidth > el.clientWidth);
     }
   }, [title]);
@@ -28,18 +27,17 @@ const SidebarChatTitle: React.FC<SidebarChatTitleProps> = ({ title, fallback }) 
       ref={spanRef}
       className="truncate flex-1 text-sm leading-tight"
       style={{ maxWidth: "12rem" }}
-      title={!isTruncated ? undefined : title}
     >
       {title || fallback}
     </span>
   );
 
-  // If the title isn't truncated, show plain, else add tooltip
+  // If the title isn't truncated, show plain, else add tooltip with custom design under cursor
   if (!isTruncated) {
     return renderTitle;
   }
 
-  // Custom tooltip: dark bg, accent border, white text to match the design
+  // Our custom tooltip: dark bg, accent border, white text, positioned below the trigger
   return (
     <TooltipProvider>
       <Tooltip>
@@ -47,10 +45,12 @@ const SidebarChatTitle: React.FC<SidebarChatTitleProps> = ({ title, fallback }) 
           {renderTitle}
         </TooltipTrigger>
         <TooltipContent
-          side="right"
-          className="!bg-[#23142e] !text-white !border-accent !rounded-md !font-semibold !px-4 !py-2 max-w-xs break-words shadow-lg"
+          side="bottom"
+          align="center"
+          className="!bg-[#222128] !text-[#d4d2ee] !border-[#8835bd] !rounded-md !font-medium !px-4 !py-2 !shadow-lg min-w-0"
+          sideOffset={6}
         >
-          <span>{title}</span>
+          <span className="whitespace-normal break-words">{title}</span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
