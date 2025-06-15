@@ -8,8 +8,6 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
-// Keep: no import of ShareChatButton
-import ShareChatDialog from "@/components/ShareChatDialog";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
@@ -92,12 +90,13 @@ const Index = () => {
             : { marginLeft: SIDEBAR_WIDTH }
         }
       >
-        <div className={`flex-1 flex flex-col min-h-0 ${collapsed ? "items-center" : ""}`}>
+        <div className={`flex-1 flex flex-col min-h-0 ${
+          collapsed ? "items-center" : ""
+        }`}>
           <div className={`
             w-full 
             ${collapsed ? "flex justify-center" : ""}
             max-w-full sm:max-w-full md:max-w-3xl mx-auto
-            relative
           `}>
             <div className={`flex-1 w-full`}>
               {/* Wait for profile loading */}
@@ -118,15 +117,8 @@ const Index = () => {
             w-full max-w-full md:max-w-3xl
             ${collapsed ? "max-w-3xl" : ""}
           `}>
-            {/* Model selector row and share dialog button row */}
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
-                {currentChatId && (
-                  // Always show the gear icon button for sharing/settings when there is a chat
-                  <ShareChatDialog chatId={currentChatId} />
-                )}
-              </div>
+              <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
             </div>
             <ChatInputBar
               ref={chatInputBarRef}
