@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
@@ -37,6 +38,17 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   // Track previous message count and loading state
   const prevMsgLen = useRef<number>(messages.length);
   const prevIsLoading = useRef<boolean>(isLoading);
+
+  // Track previous last message role to detect user sends
+  const prevLastMessageRole = useRef<string | undefined>(undefined);
+
+  // Function to scroll to the bottom
+  const scrollToBottom = () => {
+    const sc = scrollContainerRef.current;
+    if (sc) {
+      sc.scrollTop = sc.scrollHeight;
+    }
+  };
 
   // Monitor scroll position to update isAtBottom state
   useEffect(() => {
@@ -86,6 +98,20 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     // eslint-disable-next-line
   }, [messages, isLoading, isAtBottom]);
 
+  // --- NEW: Scroll when user message is added ---
+  useEffect(() => {
+    // Whenever the last message is from the user AND it is new, scroll to bottom
+    if (
+      messages.length > 0 &&
+      messages[messages.length - 1].role === "user" &&
+      prevLastMessageRole.current !== "user"
+    ) {
+      scrollToBottom();
+    }
+    prevLastMessageRole.current =
+      messages.length > 0 ? messages[messages.length - 1].role : undefined;
+  }, [messages]);
+
   // Debug logging: print all IDs before and after dedupe
   useEffect(() => {
     const deduped = dedupeMessages(messages);
@@ -117,3 +143,4 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
+
