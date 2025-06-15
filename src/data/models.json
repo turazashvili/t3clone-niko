@@ -1,25 +1,6 @@
 {
   "data": [
     {
-      "id": "openai/o3-pro",
-      "provider": "OpenAI",
-      "canonical_slug": "openai/o3-pro-2025-06-10",
-      "name": "OpenAI: o3 Pro",
-      "context_length": 200000,
-      "architecture": {
-        "modality": "text+image->text",
-        "input_modalities": ["text", "file", "image"],
-        "output_modalities": ["text"],
-        "tokenizer": "Other",
-        "instruct_type": null
-      },
-      "top_provider": {
-        "context_length": 200000,
-        "max_completion_tokens": 100000,
-        "is_moderated": true
-      }
-    },
-    {
       "id": "google/gemini-2.5-pro-preview",
       "provider": "Google",
       "canonical_slug": "google/gemini-2.5-pro-preview-06-05",
@@ -35,25 +16,6 @@
       "top_provider": {
         "context_length": 1048576,
         "max_completion_tokens": 65536,
-        "is_moderated": false
-      }
-    },
-    {
-      "id": "deepseek/deepseek-r1-distill-qwen-7b",
-      "provider": "DeepSeek",
-      "canonical_slug": "deepseek/deepseek-r1-distill-qwen-7b",
-      "name": "DeepSeek: R1 Distill Qwen 7B",
-      "context_length": 131072,
-      "architecture": {
-        "modality": "text->text",
-        "input_modalities": ["text"],
-        "output_modalities": ["text"],
-        "tokenizer": "Qwen",
-        "instruct_type": "deepseek-r1"
-      },
-      "top_provider": {
-        "context_length": 131072,
-        "max_completion_tokens": null,
         "is_moderated": false
       }
     },

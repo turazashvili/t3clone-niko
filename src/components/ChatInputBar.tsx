@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useImperativeHandle, forwardRef } from "react";
 import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
@@ -80,6 +79,7 @@ const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [fileLimitError, setFileLimitError] = useState<string | null>(null);
+  const [modelSearch, setModelSearch] = useState("");
 
   // FIX: Add useFileUpload destructure here
   const { upload: uploadFile, uploading, error: uploadError } = useFileUpload();
@@ -127,7 +127,10 @@ const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   };
 
   // Add model dropdown logic here
-  const filteredList = MODEL_LIST; // Can add search if needed
+  // Apply filter by model name
+  const filteredList = MODEL_LIST.filter((m) =>
+    m.name.toLowerCase().includes(modelSearch.toLowerCase())
+  );
   const currentModel = MODEL_LIST.find(m => m.id === selectedModel) || MODEL_LIST[0];
 
   // Drag and drop handlers
@@ -283,38 +286,50 @@ const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
                 className="p-0 w-[420px] sm:w-[480px] bg-[#181421] border-[#433A60] rounded-2xl shadow-xl z-50"
                 style={{ overflow: "visible" }}
               >
+                {/* NEW: Add search input for filtering models */}
+                <div className="p-3 pb-0 sticky top-0 z-10 bg-[#181421]">
+                  <input
+                    type="text"
+                    value={modelSearch}
+                    autoFocus
+                    onChange={e => setModelSearch(e.target.value)}
+                    placeholder="Search model name…"
+                    className="w-full px-3 py-2 rounded-lg border border-[#393160] bg-[#28253b] text-white text-sm outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-pink-400 transition"
+                  />
+                </div>
                 {/* ScrollArea shows all models and is the only scrollable area */}
-                <ScrollArea className="max-h-[420px] overflow-y-auto">
+                <ScrollArea className="max-h-[420px] overflow-y-auto pt-0">
                   <div>
-                    {filteredList.length === 0 && (
+                    {filteredList.length === 0 ? (
                       <div className="text-center text-sm text-zinc-400 py-8">No models found.</div>
+                    ) : (
+                      filteredList.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            setSelectedModel(m.id);
+                            setDropdownOpen(false);
+                          }}
+                          className={
+                            `flex items-center gap-3 py-2 px-3 w-full rounded-lg cursor-pointer group border-l-4 transition-all
+                             ${selectedModel === m.id
+                              ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
+                              : "border-transparent hover:bg-[#222032] text-blue-100"}`
+                          }
+                          style={{ minHeight: "44px" }}
+                          tabIndex={0}
+                        >
+                          <span className="flex-1 text-left truncate">{m.name}
+                            {m.top_provider.is_moderated && (
+                              <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" aria-label="Moderated" />
+                            )}
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            {getModalityIcons(m.architecture.input_modalities)}
+                          </div>
+                        </button>
+                      ))
                     )}
-                    {filteredList.map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          setSelectedModel(m.id);
-                          setDropdownOpen(false);
-                        }}
-                        className={
-                          `flex items-center gap-3 py-2 px-3 w-full rounded-lg cursor-pointer group border-l-4 transition-all
-                           ${selectedModel === m.id
-                            ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
-                            : "border-transparent hover:bg-[#222032] text-blue-100"}`
-                        }
-                        style={{ minHeight: "44px" }}
-                        tabIndex={0}
-                      >
-                        <span className="flex-1 text-left truncate">{m.name}
-                          {m.top_provider.is_moderated && (
-                            <Lock className="inline-block ml-2 w-4 h-4 text-pink-400" aria-label="Moderated" />
-                          )}
-                        </span>
-                        <div className="flex items-center gap-0.5">
-                          {getModalityIcons(m.architecture.input_modalities)}
-                        </div>
-                      </button>
-                    ))}
                   </div>
                 </ScrollArea>
               </PopoverContent>
