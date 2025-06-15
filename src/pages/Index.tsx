@@ -122,8 +122,8 @@ const Index = () => {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
-                {/* Show settings/share icon only for valid chat */}
                 {currentChatId && (
+                  // Always show the gear icon button for sharing/settings when there is a chat
                   <ShareChatDialog chatId={currentChatId} />
                 )}
               </div>

@@ -3,14 +3,16 @@ import React, { useEffect, useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { Upload, Cog } from "lucide-react";
+import { Cog, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ShareChatDialogProps {
   chatId?: string | null;
+  /** Added optional prop to allow always-visible, inline button if needed */
+  buttonClassName?: string;
 }
 
-const ShareChatDialog: React.FC<ShareChatDialogProps> = ({ chatId }) => {
+const ShareChatDialog: React.FC<ShareChatDialogProps> = ({ chatId, buttonClassName }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -122,7 +124,7 @@ const ShareChatDialog: React.FC<ShareChatDialogProps> = ({ chatId }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-4 top-4 z-40 shadow bg-background/70 hover:bg-accent p-0"
+          className={buttonClassName || "ml-2 p-0"}
           aria-label="Chat settings"
           style={{ boxShadow: "none" }}
         >
