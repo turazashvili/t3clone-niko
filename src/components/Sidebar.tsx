@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useSidebarSync } from "@/hooks/useSidebarSync";
 import DeleteChatButton from "./DeleteChatButton";
 import { useChatsRealtime } from "@/hooks/useChatsRealtime";
+import { useLocation } from "react-router-dom";
 
 interface Chat {
   id: string;
@@ -84,6 +85,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     fetchRecentChats();
   }, [userId, sidebarRefreshKey, triggerRefresh]);
+
+  // NEW: Get current chatId from the URL
+  const location = useLocation();
+  // /chat/:chatId
+  const currentChatId = (() => {
+    const match = location.pathname.match(/^\/chat\/([a-zA-Z0-9\-]+)/);
+    return match ? match[1] : null;
+  })();
 
   // Use new realtime hook for chat updates!
   useChatsRealtime(userId, setRecentChats);
@@ -189,18 +198,25 @@ const Sidebar: React.FC<SidebarProps> = ({
             <p className="text-center text-sm text-white/50 py-4">No recent chats.</p>
           )}
           {!loadingChats &&
-            recentChats.map((chat) => (
-              <div
-                key={chat.id}
-                className="py-2 px-2 sm:px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
-                onClick={() => handleChatClick(chat.id)}
-              >
-                <MessageSquare size={16} className="text-white/60 shrink-0" />
-                <span className="truncate flex-1 text-sm">
-                  {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
-                </span>
-              </div>
-            ))}
+            recentChats.map((chat) => {
+              const isActive = chat.id === currentChatId;
+              return (
+                <div
+                  key={chat.id}
+                  className={`py-2 px-2 sm:px-3 rounded-md text-white/80 font-medium cursor-pointer transition mb-1 flex items-center gap-2
+                    hover:bg-[#251933] hover:text-white
+                    ${isActive ? "bg-accent/30 border border-accent text-white shadow" : ""}
+                  `}
+                  onClick={() => handleChatClick(chat.id)}
+                  style={isActive ? { fontWeight: 700 } : undefined}
+                >
+                  <MessageSquare size={16} className="text-white/60 shrink-0" />
+                  <span className="truncate flex-1 text-sm">
+                    {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
+                  </span>
+                </div>
+              );
+            })}
         </div>
         {/* Footer always at the bottom, overlayed atop scroll area */}
         <div
@@ -296,30 +312,36 @@ const Sidebar: React.FC<SidebarProps> = ({
           <p className="text-center text-sm text-white/50 py-4">No recent chats.</p>
         )}
         {!loadingChats &&
-          recentChats.map((chat) => (
-            <div
-              key={chat.id}
-              className="group/sidebar-chat relative py-2 px-2 sm:px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
-              onClick={() => {
-                navigate(`/chat/${chat.id}`);
-                onLoadChat?.(chat.id);
-              }}
-            >
-              <MessageSquare size={16} className="text-white/60 shrink-0" />
-              <span className="truncate flex-1 text-sm">
-                {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
-              </span>
-              <div className="ml-2 flex-shrink-0">
-                <DeleteChatButton chatId={chat.id} onDeleted={() => {
-                  // Refresh chats after deletion
-                  setRecentChats(cs => cs.filter(c => c.id !== chat.id));
-                  if (typeof window !== "undefined" && window.location.pathname === `/chat/${chat.id}`) {
-                    navigate("/");
-                  }
-                }} />
+          recentChats.map((chat) => {
+            const isActive = chat.id === currentChatId;
+            return (
+              <div
+                key={chat.id}
+                className={`group/sidebar-chat relative py-2 px-2 sm:px-3 rounded-md text-white/80 font-medium cursor-pointer transition mb-1 flex items-center gap-2
+                  hover:bg-[#251933] hover:text-white
+                  ${isActive ? "bg-accent/30 border border-accent text-white shadow" : ""}
+                `}
+                onClick={() => {
+                  navigate(`/chat/${chat.id}`);
+                  onLoadChat?.(chat.id);
+                }}
+                style={isActive ? { fontWeight: 700 } : undefined}
+              >
+                <MessageSquare size={16} className="text-white/60 shrink-0" />
+                <span className="truncate flex-1 text-sm">
+                  {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
+                </span>
+                <div className="ml-2 flex-shrink-0">
+                  <DeleteChatButton chatId={chat.id} onDeleted={() => {
+                    setRecentChats(cs => cs.filter(c => c.id !== chat.id));
+                    if (typeof window !== "undefined" && window.location.pathname === `/chat/${chat.id}`) {
+                      navigate("/");
+                    }
+                  }} />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
       <div className="mt-auto pt-4 border-t border-[#251c2f]/70">
         {userId ? (
