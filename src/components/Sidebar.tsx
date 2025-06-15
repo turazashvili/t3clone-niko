@@ -22,7 +22,6 @@ interface SidebarProps {
 }
 
 const SIDEBAR_WIDTH = 290;
-const SIDEBAR_COLLAPSED_WIDTH = 54;
 
 const Sidebar: React.FC<SidebarProps> = ({
   onLoginClick,
@@ -62,37 +61,32 @@ const Sidebar: React.FC<SidebarProps> = ({
     fetchRecentChats();
   }, [userId, sidebarRefreshKey, triggerRefresh]);
 
-  // Collapsed sidebar content
+  // Collapsed sidebar: Only show menu and plus icons, side-by-side, with no background/border
   if (collapsed) {
     return (
-      <aside
-        className="fixed left-0 top-0 z-30 h-screen bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-0 py-5 flex flex-col justify-between items-stretch"
-        style={{ width: SIDEBAR_COLLAPSED_WIDTH }}
+      <div
+        className="fixed left-0 top-5 z-40 flex gap-2"
+        style={{ width: "auto" }}
       >
-        <div className="flex flex-col items-center space-y-3">
-          <button
-            aria-label="Expand sidebar"
-            className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-[#23142e] transition"
-            onClick={() => setCollapsed(false)}
-          >
-            <Menu size={22} color="#dec9f7" />
-          </button>
-        </div>
-        <div className="flex flex-col items-center space-y-3 mb-2">
-          <button
-            aria-label="New chat"
-            className="w-9 h-9 flex items-center justify-center rounded-md hover:bg-[#23142e] transition"
-            onClick={() => {
-              onNewChatClick?.();
-              navigate("/");
-            }}
-            disabled={!userId}
-            style={{ color: "#dec9f7" }}
-          >
-            <Plus size={22} />
-          </button>
-        </div>
-      </aside>
+        <button
+          aria-label="Expand sidebar"
+          className="w-10 h-10 flex items-center justify-center rounded-md bg-[#2d1a3d] hover:bg-[#23142e] transition shadow"
+          onClick={() => setCollapsed(false)}
+        >
+          <Menu size={22} color="#dec9f7" />
+        </button>
+        <button
+          aria-label="New chat"
+          className="w-10 h-10 flex items-center justify-center rounded-md bg-[#2d1a3d] hover:bg-[#23142e] transition shadow"
+          onClick={() => {
+            onNewChatClick?.();
+            navigate("/");
+          }}
+          disabled={!userId}
+        >
+          <Plus size={22} color="#dec9f7" />
+        </button>
+      </div>
     );
   }
 
