@@ -1,6 +1,6 @@
-
 import React, { useState } from "react";
 import { PlusCircle, Newspaper, Code2, BookOpen } from "lucide-react";
+import MainInfo from "./MainInfo";
 
 // All prompt lists
 const actionPrompts: Record<
@@ -97,9 +97,10 @@ const PromptSwitcher: React.FC<PromptSwitcherProps> = ({ onPromptClick }) => {
           </div>
         ))}
       </div>
+      {/* Added MainInfo (Core Requirements/Stats) */}
+      <MainInfo />
     </div>
   );
 };
 
 export default PromptSwitcher;
-
