@@ -16,20 +16,45 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Lock } from "lucide-react";
 import { Eye, ImageIcon, FileText, LucideFile, File, Upload } from "lucide-react";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload"; // NEW
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"; // ADDED
 
 const MODEL_LIST: LLMModel[] = (modelsJson as any).data;
 
-const iconsByModality: Record<string, React.ReactNode> = {
-  text: <Eye className="h-5 w-5" aria-label="Text" />,
-  image: <ImageIcon className="h-5 w-5" aria-label="Image" />,
-  file: <FileText className="h-5 w-5" aria-label="File" />,
+const iconsByModality: Record<
+  string,
+  { icon: React.ReactNode; label: string }
+> = {
+  text: {
+    icon: <Eye className="h-5 w-5" aria-label="Text" />,
+    label: "Supports text input",
+  },
+  image: {
+    icon: <ImageIcon className="h-5 w-5" aria-label="Image" />,
+    label: "Supports image input",
+  },
+  file: {
+    icon: <FileText className="h-5 w-5" aria-label="File" />,
+    label: "Supports file upload",
+  },
 };
+// Helper function to render icons with tooltips
 function getModalityIcons(inputs: string[]) {
-  return inputs.map((m) => (
-    <span key={m} className="inline-block mr-1 text-green-300 opacity-80">
-      {iconsByModality[m] || <LucideFile className="h-5 w-5" aria-label={m} />}
-    </span>
-  ));
+  return inputs.map((m) => {
+    const iconEntry = iconsByModality[m] || {
+      icon: <LucideFile className="h-5 w-5" aria-label={m} />,
+      label: m,
+    };
+    return (
+      <Tooltip key={m}>
+        <TooltipTrigger asChild>
+          <span className="inline-block mr-1 text-green-300 opacity-80 cursor-pointer">
+            {iconEntry.icon}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top">{iconEntry.label}</TooltipContent>
+      </Tooltip>
+    );
+  });
 }
 function prettyNum(num?: number | null) {
   if (!num) return "?";
@@ -310,12 +335,10 @@ const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
                             setSelectedModel(m.id);
                             setDropdownOpen(false);
                           }}
-                          className={
-                            `flex items-center gap-3 py-2 px-3 w-full rounded-lg cursor-pointer group border-l-4 transition-all
+                          className={`flex items-center gap-3 py-2 px-3 w-full rounded-lg cursor-pointer group border-l-4 transition-all
                              ${selectedModel === m.id
                               ? "border-pink-400 bg-[#231c30] text-pink-100 font-bold"
-                              : "border-transparent hover:bg-[#222032] text-blue-100"}`
-                          }
+                              : "border-transparent hover:bg-[#222032] text-blue-100"}`}
                           style={{ minHeight: "44px" }}
                           tabIndex={0}
                         >
