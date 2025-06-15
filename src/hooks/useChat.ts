@@ -88,27 +88,8 @@ export function useChat() {
   }, []);
 
   // === NEW: Attach realtime chat syncing here ===
-  useMessagesRealtime(currentChatId, (incomingMsgs) => {
-    setMessages(prevMessages => {
-      // For each incoming DB message, remove any optimistic message with the same role+content (and not a DB id)
-      const dbIds = new Set(incomingMsgs.map(m => m.id));
-      // Remove any optimistic user/assistant message that matches by role+content
-      const withoutOptimistic = prevMessages.filter(m => {
-        // If it's a real DB message (no optimistic): always keep
-        if (!m.optimistic) return true;
-        // If a DB version of this message (role+content) is now present, remove
-        const match = incomingMsgs.some(dbm =>
-          dbm.role === m.role &&
-          dbm.content === m.content
-        );
-        return !match;
-      });
-      // Merge: start with DB messages (should be authoritative), then any leftover optimistic
-      // (but usually, there should be none at send time)
-      // For normal chat usage, just return DB messages.
-      return [...incomingMsgs, ...withoutOptimistic.filter(m => m.optimistic)];
-    });
-  });
+  // Pass setMessages directly, do not wrap in a callback
+  useMessagesRealtime(currentChatId, setMessages);
 
   // Only for initial chat loading, NOT for sending
   const fetchChatMessages = useCallback(async (chatId: string) => {
