@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -59,7 +58,6 @@ const ChatView = () => {
 
   // Add input+focus handler for prompt clicks (same as Index)
   const inputRef = React.useRef<any>(null);
-  const { setInputValue } = useChat();
   const handleSetInputValueAndFocus = (value: string) => {
     setInputValue(value);
     setTimeout(() => {
