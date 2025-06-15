@@ -434,7 +434,7 @@ export function useChat() {
       setMessages,
       navigate,
       createChatIfNeeded,
-      // waitForNavigationToChat  // <-- removed
+      // waitForNavigationToChat
     ]
   );
 
