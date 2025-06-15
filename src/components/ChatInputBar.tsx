@@ -432,7 +432,7 @@ const ChatInputBar = React.forwardRef<ChatInputBarRef, ChatInputBarProps>(({
         )}
       </form>
       {/* GEAR ICON: only show if a chat is active and a chatId exists in props (e.g. user prop and user.currentChatId) */}
-      {props.user && props.currentChatId && (
+      {user && currentChatId && (
         <>
           <button
             type="button"
@@ -444,7 +444,7 @@ const ChatInputBar = React.forwardRef<ChatInputBarRef, ChatInputBarProps>(({
             <Cog size={22} strokeWidth={2.2} />
           </button>
           <ChatShareDialog
-            chatId={props.currentChatId}
+            chatId={currentChatId}
             open={shareOpen}
             onOpenChange={setShareOpen}
           />
