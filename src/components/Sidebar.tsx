@@ -21,6 +21,9 @@ interface SidebarProps {
   triggerRefresh?: any;
 }
 
+// Key for localStorage
+const SIDEBAR_COLLAPSED_KEY = "t3chat_sidebar_collapsed";
+
 const SIDEBAR_WIDTH = 290;
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -33,9 +36,25 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
   const [loadingChats, setLoadingChats] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+
+  // Changed: Initialize from localStorage, fallback to false if not set
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      return stored === "true";
+    }
+    return false;
+  });
+
   const navigate = useNavigate();
   const { refreshKey: sidebarRefreshKey } = useSidebarSync(userId);
+
+  // Update localStorage every time collapsed state changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "true" : "false");
+    }
+  }, [collapsed]);
 
   useEffect(() => {
     async function fetchRecentChats() {
@@ -185,3 +204,4 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
+
