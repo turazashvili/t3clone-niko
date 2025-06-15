@@ -1,5 +1,5 @@
 import React, { useRef, useState, useImperativeHandle, forwardRef } from "react";
-import { ChevronDown, ArrowUp, Paperclip, Globe, Cog } from "lucide-react";
+import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -17,7 +17,6 @@ import { Lock } from "lucide-react";
 import { Eye, ImageIcon, FileText, LucideFile, File, Upload } from "lucide-react";
 import { useFileUpload, UploadedFile } from "@/hooks/useFileUpload"; // NEW
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"; // ADDED
-import ChatShareDialog from "./ChatShareDialog";
 
 const MODEL_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -94,7 +93,6 @@ interface ChatInputBarProps {
   setWebSearchEnabled: (enabled: boolean) => void;
   attachedFiles?: UploadedFile[];
   setAttachedFiles?: (files: UploadedFile[]) => void;
-  currentChatId?: string;
 }
 
 const MAX_FILES = 5; // Allow up to 5 files
@@ -103,7 +101,7 @@ export interface ChatInputBarRef {
   focus: () => void;
 }
 
-const ChatInputBar = React.forwardRef<ChatInputBarRef, ChatInputBarProps>(({
+const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   inputValue,
   setInputValue,
   onSend,
@@ -116,7 +114,6 @@ const ChatInputBar = React.forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   setWebSearchEnabled,
   attachedFiles = [],
   setAttachedFiles = () => {},
-  currentChatId,
 }, ref) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -125,7 +122,6 @@ const ChatInputBar = React.forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   const [dragActive, setDragActive] = useState(false);
   const [fileLimitError, setFileLimitError] = useState<string | null>(null);
   const [modelSearch, setModelSearch] = useState("");
-  const [shareOpen, setShareOpen] = React.useState(false);
 
   // FIX: Add useFileUpload destructure here
   const { upload: uploadFile, uploading, error: uploadError } = useFileUpload();
@@ -431,25 +427,6 @@ const ChatInputBar = React.forwardRef<ChatInputBarRef, ChatInputBarProps>(({
           <div className="px-1 pt-1 text-xs text-rose-400 font-semibold">{fileLimitError}</div>
         )}
       </form>
-      {/* GEAR ICON: only show if a chat is active and a chatId exists in props (e.g. user prop and user.currentChatId) */}
-      {user && currentChatId && (
-        <>
-          <button
-            type="button"
-            aria-label="Share/chat settings"
-            className="ml-2 p-2 rounded-full hover:bg-accent transition-colors text-muted-foreground"
-            onClick={() => setShareOpen(true)}
-            data-testid="chat-gear-btn"
-          >
-            <Cog size={22} strokeWidth={2.2} />
-          </button>
-          <ChatShareDialog
-            chatId={currentChatId}
-            open={shareOpen}
-            onOpenChange={setShareOpen}
-          />
-        </>
-      )}
     </div>
   );
 });
