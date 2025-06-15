@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
-import ChatInputBar from "@/components/ChatInputBar";
+import ChatInputBar, { ChatInputBarRef } from "@/components/ChatInputBar";
 import ChatArea from "./ChatArea";
 import EmptyState from "./EmptyState";
 import ModelSelector from "@/components/ModelSelector";
@@ -38,6 +37,18 @@ const Index = () => {
 
   // NEW STATE FOR ATTACHMENTS
   const [attachedFiles, setAttachedFiles] = useState<UploadedFile[]>([]);
+
+  // Setup ChatInputBar ref
+  const chatInputBarRef = useRef<ChatInputBarRef>(null);
+
+  // Handler to set input and focus the input bar
+  const handleSetInputValueAndFocus = (value: string) => {
+    setInputValue(value);
+    // Delay focus slightly to allow state to settle
+    setTimeout(() => {
+      chatInputBarRef.current?.focus();
+    }, 1);
+  };
 
   // Enhanced handleSend to support attachments
   const handleSend = (model: string, webSearchEnabled: boolean) => {
@@ -92,7 +103,9 @@ const Index = () => {
           >
             <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
               {messages.length === 0 && !isLoading ? (
-                <EmptyState />
+                <EmptyState
+                  onPromptClick={handleSetInputValueAndFocus}
+                />
               ) : (
                 <ChatArea messages={messages} isLoading={isLoading} />
               )}
@@ -106,6 +119,7 @@ const Index = () => {
               <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
             </div>
             <ChatInputBar
+              ref={chatInputBarRef}
               inputValue={inputValue}
               setInputValue={setInputValue}
               onSend={handleSend}
@@ -129,4 +143,3 @@ const Index = () => {
 };
 
 export default Index;
-

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useImperativeHandle, forwardRef } from "react";
 import { ChevronDown, ArrowUp, Paperclip, Globe } from "lucide-react";
 import {
   DropdownMenu,
@@ -55,7 +55,11 @@ interface ChatInputBarProps {
 
 const MAX_FILES = 5; // Allow up to 5 files
 
-const ChatInputBar: React.FC<ChatInputBarProps> = ({
+export interface ChatInputBarRef {
+  focus: () => void;
+}
+
+const ChatInputBar = forwardRef<ChatInputBarRef, ChatInputBarProps>(({
   inputValue,
   setInputValue,
   onSend,
@@ -68,14 +72,20 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   setWebSearchEnabled,
   attachedFiles = [],
   setAttachedFiles = () => {},
-}) => {
+}, ref) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [fileLimitError, setFileLimitError] = useState<string | null>(null);
 
-  const { upload: uploadFile, uploading, error: uploadError } = useFileUpload();
+  // Expose focus method via ref
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      if (textareaRef.current) textareaRef.current.focus();
+    },
+  }));
 
   // Attaching files (images, pdf)
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,6 +192,7 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
         {/* Textarea + actions row */}
         <div className="flex flex-row items-end gap-3 w-full">
           <textarea
+            ref={textareaRef}
             className="w-full resize-none bg-transparent text-base leading-6 text-white outline-none placeholder:text-white/50 px-1 py-1 min-h-[48px] scrollbar-none"
             placeholder="Type your message here..."
             value={inputValue}
@@ -359,7 +370,7 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
       </form>
     </div>
   );
-};
+});
 
 export default ChatInputBar;
 
