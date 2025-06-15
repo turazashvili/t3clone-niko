@@ -74,7 +74,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       <button
         className="w-full flex items-center gap-2 px-4 py-3 rounded-lg bg-accent font-semibold text-white shadow-sm hover:bg-accent-dark transition mb-2 text-base focus:outline-none"
-        onClick={onNewChatClick}
+        onClick={() => {
+          onNewChatClick?.();
+          navigate("/");
+        }}
         disabled={!userId}
       >
         <Plus size={20} />
