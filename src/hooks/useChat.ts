@@ -374,17 +374,20 @@ export function useChat() {
         return;
       }
 
-      // If there is no chat yet, create one and navigate IMMEDIATELY
+      // If there is no chat yet, create one and defer navigation!
+      let createdChatId: string | null = null;
+      let isNewChat = false;
       if (!effectiveChatId) {
         effectiveChatId = await createChatIfNeeded();
         if (!effectiveChatId) return;
         setCurrentChatId(effectiveChatId);
-        navigate(`/chat/${effectiveChatId}`);
-        // No waiting, start streaming right away!
+        createdChatId = effectiveChatId;
+        isNewChat = true;
+        // Do NOT navigate yet!
       } else if (window.location.pathname !== `/chat/${effectiveChatId}`) {
         setCurrentChatId(effectiveChatId);
         navigate(`/chat/${effectiveChatId}`);
-        // No waiting, start streaming immediately!
+        // No waiting; start streaming immediately!
       }
 
       // Only NOW start streaming
@@ -405,6 +408,10 @@ export function useChat() {
         onFirstMessageDone: () => {
           setSidebarRefreshKey(Date.now());
           if (triggerSidebarRefresh) triggerSidebarRefresh();
+          // Only now, after the first message+reply from assistant has streamed in, navigate
+          if (isNewChat && createdChatId) {
+            navigate(`/chat/${createdChatId}`);
+          }
         },
         onNewChatId: (_chatId: string) => {
           // No action needed (already handled)
