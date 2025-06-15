@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UploadedFile } from "@/hooks/useFileUpload";
@@ -9,7 +10,6 @@ const CHAT_HANDLER_URL = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/cha
 
 // Helper: parse assistant messages
 const parseAssistantMessage = (msg: any) => {
-  // No longer parse msg.content as JSON. Just use as plain text.
   let attachedFiles: UploadedFile[] = [];
   if (msg.attachments && Array.isArray(msg.attachments)) {
     attachedFiles = msg.attachments.map((f: any) => ({
@@ -22,9 +22,8 @@ const parseAssistantMessage = (msg: any) => {
   return {
     ...msg,
     content: msg.content,
-    reasoning: msg.reasoning, // just use directly
+    reasoning: msg.reasoning,
     attachedFiles,
-    // Never pass optimistic for DB message
   };
 };
 
@@ -40,8 +39,8 @@ export async function sendMessageStreaming({
   setMessages,
   setIsLoading,
   attachedFiles = [],
-  onFirstMessageDone, // NEW: callback after first message is fully synced
-  onNewChatId, // <--- ADDED! callback with new chatId
+  onFirstMessageDone,
+  onNewChatId,
 }: {
   inputValue: string,
   user: any,
@@ -53,49 +52,19 @@ export async function sendMessageStreaming({
   setMessages: (fn: (prev: Message[]) => Message[]) => void,
   setIsLoading: (is: boolean) => void,
   attachedFiles?: UploadedFile[],
-  onFirstMessageDone?: () => void, // NEW
-  onNewChatId?: (chatId: string) => void, // <--- ADDED
+  onFirstMessageDone?: () => void,
+  onNewChatId?: (chatId: string) => void,
 }) {
-  // Prepare local user message
-  const userMessage: Message = {
-    id: Date.now().toString(),
-    role: "user",
-    content: inputValue,
-    attachedFiles,
-    optimistic: true,      // <--- Mark as optimistic!
-  };
-
-  // Optimistically add user message in UI only (NOT in DB)
-  setMessages((prevMessages) => [...prevMessages, userMessage]);
+  // NO local/optimistic message insertion here!
   setIsLoading(true);
 
-  let assistantMsgId = Date.now().toString() + "_assistant";
-  let streamedContent = "";
-  let streamedReasoning = "";
-  let streamingNewChatId: string | null = null;
-
-  // Add placeholder assistant message
-  setMessages((prevMessages) => [
-    ...prevMessages,
-    {
-      id: assistantMsgId,
-      role: "assistant",
-      content: "",
-      reasoning: "",
-      optimistic: true, // <--- Mark optimistic
-    },
-  ]);
-
   try {
-    // Do NOT insert the user message in DB here!
-    // Let edge function handle creation/writing to DB
-
     const response = await fetch(CHAT_HANDLER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chatId: currentChatId,
-        userMessageContent: userMessage.content,
+        userMessageContent: inputValue,
         userId: user.id,
         model: selectedModel,
         webSearchEnabled,
@@ -108,56 +77,19 @@ export async function sendMessageStreaming({
 
     const reader = response.body.getReader();
 
-    let initialChatId: string | null = null;
-
     // We'll detect the first "chatId" in the SSE stream and use it:
     await processMessageStream(reader, {
       onChatId: (chatId) => {
-        // Only update/set if starting from a new chat!
         if (!currentChatId && chatId) {
           setCurrentChatId(chatId);
           if (onNewChatId) onNewChatId(chatId);
         }
       },
-      onReasoning: (chunk) => {
-        streamedReasoning = chunk;
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMsgId
-              ? { ...msg, reasoning: streamedReasoning }
-              : msg
-          )
-        );
-      },
-      onContent: (chunk) => {
-        streamedContent += chunk;
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMsgId
-              ? { ...msg, content: streamedContent }
-              : msg
-          )
-        );
-      },
-      onDone: async ({ content, reasoning, chatId }) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMsgId
-              ? {
-                  ...msg,
-                  content,
-                  reasoning,
-                }
-              : msg
-          )
-        );
-        // If a new chatId was created (didn't receive via event before), set it:
-        if (chatId && !currentChatId) {
-          setCurrentChatId(chatId);
-          if (onNewChatId) {
-            onNewChatId(chatId);
-          }
-        }
+      // Don't update UI for content or reasoning! Only update after DB synces.
+      onReasoning: (_chunk) => {},
+      onContent: (_chunk) => {},
+      onDone: async ({ chatId }) => {
+        // Refetch from DB to ensure UI is correct/consistent (optional safety)
         const chatToFetch = chatId || currentChatId;
         if (chatToFetch) {
           const fetchData = await supabase
@@ -172,8 +104,7 @@ export async function sendMessageStreaming({
             setMessages(() =>
               (fetchData.data ?? []).map(parseAssistantMessage)
             );
-           // --- REFRESH SIDEBAR AFTER FIRST MESSAGE ARRIVED (and DB is up-to-date) ---
-           if (onFirstMessageDone) onFirstMessageDone();
+            if (onFirstMessageDone) onFirstMessageDone();
           }
         }
       },
@@ -183,13 +114,12 @@ export async function sendMessageStreaming({
           description: formatToastError(err),
           variant: "destructive",
         });
-        setMessages((prev) => prev.filter((m) => m.id !== userMessage.id && m.id !== assistantMsgId));
+        // Don't remove any messages (nothing was optimistically added)
       }
     });
   } catch (err: any) {
     toast({ title: "Error sending message", description: err?.message || "Could not connect to chat service.", variant: "destructive" });
-    // Remove optimistic messages (user and assistant)
-    setMessages(prev => prev.filter(msg => msg.id !== userMessage.id && msg.id !== assistantMsgId));
+    // Don't remove any messages (nothing was optimistically added)
   } finally {
     setIsLoading(false);
   }
