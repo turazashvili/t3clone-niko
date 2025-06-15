@@ -10,6 +10,7 @@ import { useMessagesRealtime } from "./useMessagesRealtime";
 import { processMessageStream } from "./useMessageStreamer";
 import { formatToastError } from "./formatToastError";
 import { useSidebarSync } from "@/hooks/useSidebarSync";
+import { useUserProfile } from "./useUserProfile";
 
 export const MODELS_LIST: LLMModel[] = (modelsJson as any).data;
 
@@ -38,9 +39,8 @@ export function useChat() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
-  // NEW: Profile fetched from Supabase (NOT auth)
-  const [userProfile, setUserProfile] = useState<{ full_name?: string | null } | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  // Use custom hook for profile fetching
+  const { userProfile, profileLoading } = useUserProfile(user);
 
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -79,41 +79,6 @@ export function useChat() {
     return () => subscription.unsubscribe();
     // eslint-disable-next-line
   }, []);
-
-  // Fetch profile when user changes (debounced)
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
-    const fetchProfile = async () => {
-      if (user?.id) {
-        setProfileLoading(true);
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (data) {
-          setUserProfile({ full_name: data.full_name });
-        } else {
-          setUserProfile(null);
-        }
-        setProfileLoading(false);
-      } else {
-        setUserProfile(null);
-        setProfileLoading(false);
-      }
-    };
-    if (user?.id) {
-      // Debounce the profile fetch: 300ms after the latest change
-      timeout = setTimeout(fetchProfile, 300);
-    } else {
-      // on log out, immediately clear profile
-      fetchProfile();
-    }
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
-    // eslint-disable-next-line
-  }, [user]);
 
   // === NEW: Attach realtime chat syncing here ===
   useMessagesRealtime(currentChatId, setMessages);
