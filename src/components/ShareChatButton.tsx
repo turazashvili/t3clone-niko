@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -36,8 +35,8 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
           if (error) setPublicState(null);
           else setPublicState(!!data?.is_public);
         }
-      })
-      .finally(() => setFetching(false));
+        setFetching(false);
+      });
     return () => {
       canceled = true;
     };
@@ -213,4 +212,3 @@ const ShareChatButton: React.FC<ShareChatButtonProps> = ({ chatId }) => {
 };
 
 export default ShareChatButton;
-
