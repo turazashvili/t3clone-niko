@@ -383,27 +383,28 @@ export function useChat() {
         return;
       }
 
-      // If there is no chat yet, create one and defer navigation!
       let createdChatId: string | null = null;
       let isNewChat = false;
       if (!effectiveChatId) {
-        // Pass the initial user prompt for chat title generation
         effectiveChatId = await createChatIfNeeded(contentToSend.trim().slice(0, 200));
         if (!effectiveChatId) return;
         setCurrentChatId(effectiveChatId);
         createdChatId = effectiveChatId;
         isNewChat = true;
-        // Do NOT navigate yet!
       } else if (window.location.pathname !== `/chat/${effectiveChatId}`) {
         setCurrentChatId(effectiveChatId);
         navigate(`/chat/${effectiveChatId}`);
-        // No waiting; start streaming immediately!
       }
 
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // Send to edge function ONLY - do NOT add any optimistic messages!
+      // DISABLE ALL OPTIMISTIC: Confirm no local user message is inserted
+      // All messages must come ONLY from realtime/DB, log all local setMessages
+      // Do not insert any placeholder message here.
+
+      console.log("[useChat] Sending message to edge function, expecting only realtime events to insert user message. currentChatId:", effectiveChatId);
+
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -412,7 +413,11 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        setMessages, // Realtime events will handle message population in the UI now
+        setMessages: (msgs) => {
+          // Log every time setMessages is triggered for debugging
+          console.log("[useChat] setMessages called in sendMessageStreaming (should only happen by edge/realtime):", msgs.map(m => m.id));
+          setMessages(msgs);
+        },
         setIsLoading,
         attachedFiles: attachedFiles || [],
         onFirstMessageDone: () => {
