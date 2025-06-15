@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import LoginModal from "@/components/LoginModal";
@@ -9,7 +8,7 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
-// Removed: import ShareChatButton from "@/components/ShareChatButton";
+// Keep: no import of ShareChatButton
 import ShareChatDialog from "@/components/ShareChatDialog";
 
 // Keep this in sync with Sidebar width!
@@ -93,10 +92,6 @@ const Index = () => {
             : { marginLeft: SIDEBAR_WIDTH }
         }
       >
-        {/* --- GEAR DIALOG BUTTON absolute in chat area, sticky/fixed --- */}
-        {currentChatId && (
-          <ShareChatDialog chatId={currentChatId} />
-        )}
         <div className={`flex-1 flex flex-col min-h-0 ${collapsed ? "items-center" : ""}`}>
           <div className={`
             w-full 
@@ -104,7 +99,6 @@ const Index = () => {
             max-w-full sm:max-w-full md:max-w-3xl mx-auto
             relative
           `}>
-            {/* Removed previous share button slot */}
             <div className={`flex-1 w-full`}>
               {/* Wait for profile loading */}
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (
@@ -124,8 +118,15 @@ const Index = () => {
             w-full max-w-full md:max-w-3xl
             ${collapsed ? "max-w-3xl" : ""}
           `}>
+            {/* Model selector row and share dialog button row */}
             <div className="flex items-center justify-between mb-2">
-              <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+              <div className="flex items-center gap-2">
+                <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+                {/* Show settings/share icon only for valid chat */}
+                {currentChatId && (
+                  <ShareChatDialog chatId={currentChatId} />
+                )}
+              </div>
             </div>
             <ChatInputBar
               ref={chatInputBarRef}
