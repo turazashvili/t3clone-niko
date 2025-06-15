@@ -51,6 +51,11 @@ export function useChat() {
   const [selectedModel, setSelectedModel] = useState(MODELS_LIST[0].id);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
 
+  // Add navigation (from react-router-dom)
+  const navigate = useNavigate();
+  // Add sidebar sync refresh trigger
+  const { triggerSidebarRefresh } = useSidebarSync(user?.id);
+
   // Track previous chat id to detect when a new chat is created
   const prevChatIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -456,6 +461,8 @@ export function useChat() {
       // - delete all following messages
       // - send the edited message as a new prompt (preserving attachments, chat_id)
       // LEAVE IT for now but don't use in the main ChatMessage edit submit.
+      deleteMessagesAfter(msgId);
+      handleSendMessage(modelOverride, undefined, attachedFiles, newContent, chat_id);
     },
     [deleteMessagesAfter, handleSendMessage]
   );
