@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useSidebarSync } from "@/hooks/useSidebarSync";
+import DeleteChatButton from "./DeleteChatButton";
 
 interface Chat {
   id: string;
@@ -294,7 +295,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           recentChats.map((chat) => (
             <div
               key={chat.id}
-              className="py-2 px-2 sm:px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
+              className="group/sidebar-chat relative py-2 px-2 sm:px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
               onClick={() => {
                 navigate(`/chat/${chat.id}`);
                 onLoadChat?.(chat.id);
@@ -304,6 +305,15 @@ const Sidebar: React.FC<SidebarProps> = ({
               <span className="truncate flex-1 text-sm">
                 {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
               </span>
+              <div className="ml-2 flex-shrink-0">
+                <DeleteChatButton chatId={chat.id} onDeleted={() => {
+                  // Refresh chats after deletion
+                  setRecentChats(cs => cs.filter(c => c.id !== chat.id));
+                  if (typeof window !== "undefined" && window.location.pathname === `/chat/${chat.id}`) {
+                    navigate("/");
+                  }
+                }} />
+              </div>
             </div>
           ))}
       </div>
