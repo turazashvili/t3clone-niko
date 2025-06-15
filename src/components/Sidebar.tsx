@@ -1,4 +1,3 @@
-
 import { Menu, Plus, Search, MessageSquare, Loader2, LogOut, LogIn } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,11 +74,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     fetchRecentChats();
   }, [userId, sidebarRefreshKey, triggerRefresh]);
 
-  // Collapsed sidebar: Only show menu and plus icons, side-by-side, with no background/border
+  // Collapsed sidebar: Mobile slide-out (bottom or side)
   if (collapsed) {
     return (
       <div
-        className="fixed left-0 top-5 z-40 flex gap-2"
+        className="fixed left-0 top-3 sm:top-5 z-40 flex gap-2 sm:gap-2"
         style={{ width: "auto" }}
       >
         <button
@@ -108,8 +107,17 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Expanded sidebar content
   return (
     <aside
-      className="fixed left-0 top-0 z-30 h-screen bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c] border-r border-[#251c2f]/70 px-4 py-5 flex flex-col"
-      style={{ width: SIDEBAR_WIDTH }}
+      className={`
+        fixed left-0 top-0 z-30 h-screen bg-gradient-to-b from-[#201022] via-[#19101c] to-[#19101c]
+        border-r border-[#251c2f]/70
+        px-2 py-4 sm:px-4 sm:py-5 flex flex-col
+        w-[80vw] max-w-[310px] sm:w-[${SIDEBAR_WIDTH}px]
+        transition-all
+      `}
+      style={{
+        width: 'clamp(220px, 80vw, 320px)',
+        maxWidth: '320px'
+      }}
     >
       <div className="flex items-center gap-2 mb-6 select-none">
         <button
@@ -125,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         </span>
       </div>
       <button
-        className="w-full flex items-center gap-2 px-4 py-3 rounded-lg bg-accent font-semibold text-white shadow-sm hover:bg-accent-dark transition mb-2 text-base focus:outline-none"
+        className="w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg bg-accent font-semibold text-white shadow-sm hover:bg-accent-dark transition mb-2 text-base focus:outline-none"
         onClick={() => {
           onNewChatClick?.();
           navigate("/");
@@ -133,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         disabled={!userId}
       >
         <Plus size={20} />
-        New Chat
+        <span className="hidden xs:inline">New Chat</span>
       </button>
       <div className="relative mb-3">
         <input
@@ -148,7 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         />
       </div>
       {/* Scrollable chat list */}
-      <div className="flex-1 overflow-y-auto mt-2 pr-1 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto mt-2 pr-1 custom-scrollbar min-h-0">
         {loadingChats && (
           <div className="flex justify-center items-center h-full">
             <Loader2 size={24} className="animate-spin text-white/50" />
@@ -161,14 +169,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           recentChats.map((chat) => (
             <div
               key={chat.id}
-              className="py-2 px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
+              className="py-2 px-2 sm:px-3 rounded-md text-white/80 hover:bg-[#251933] hover:text-white font-medium cursor-pointer transition mb-1 flex items-center gap-2"
               onClick={() => {
                 navigate(`/chat/${chat.id}`);
                 onLoadChat?.(chat.id);
               }}
             >
               <MessageSquare size={16} className="text-white/60 shrink-0" />
-              <span className="truncate flex-1">
+              <span className="truncate flex-1 text-sm">
                 {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
               </span>
             </div>
@@ -177,21 +185,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className="mt-auto pt-4 border-t border-[#251c2f]/70">
         {userId ? (
           <button
-            className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2 w-full justify-start"
+            className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2 w-full justify-start text-sm"
             type="button"
             onClick={onSignOutClick}
           >
             <LogOut size={20} />
-            Sign Out
+            <span className="hidden xs:inline">Sign Out</span>
           </button>
         ) : (
           <button
-            className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2 w-full justify-start"
+            className="flex items-center gap-2 text-white/80 hover:text-accent transition font-semibold px-1 py-2 w-full justify-start text-sm"
             type="button"
             onClick={onLoginClick}
           >
             <LogIn size={20} />
-            Login to Chat
+            <span className="hidden xs:inline">Login to Chat</span>
           </button>
         )}
       </div>
@@ -200,4 +208,3 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
-

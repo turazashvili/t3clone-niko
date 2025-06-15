@@ -68,81 +68,146 @@ const Index = () => {
   });
 
   return (
-    <div className="relative min-h-screen w-full bg-transparent">
-      {/* Fix Sidebar */}
-      <Sidebar
-        onLoginClick={() => setLoginOpen(true)}
-        onNewChatClick={handleNewChat}
-        onLoadChat={loadChat}
-        userId={user?.id}
-        onSignOutClick={handleSignOut}
-        triggerRefresh={sidebarRefreshKey}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-      />
-      {/* Main content */}
-      <main
-        className={`flex flex-col min-h-screen transition-all duration-200 ${
-          collapsed
-            ? "ml-0"
-            : ""
-        }`}
-        style={
-          collapsed
-            ? { marginLeft: 0 }
-            : { marginLeft: SIDEBAR_WIDTH }
-        }
-      >
-        <div className={`flex-1 flex flex-col min-h-0 ${
-          collapsed ? "items-center" : ""
-        }`}>
-          <div className={`w-full ${
-              collapsed
-                ? "flex justify-center"
-                : ""
-            }`}
-          >
-            <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
-              {/* Wait for profile loading */}
-              {messages.length === 0 && !isLoading && !inputValue.trim() ? (
-                <EmptyState
-                  onPromptClick={handleSetInputValueAndFocus}
-                  user={userProfile ?? undefined}
-                />
-              ) : (
-                <ChatArea messages={messages} isLoading={isLoading} />
-              )}
-            </div>
-          </div>
-        </div>
-        {/* Chat Input Area */}
-        <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6">
-          <div className={`mx-auto px-4 ${collapsed ? "max-w-3xl" : ""}`}>
-            <div className="flex items-center justify-between mb-2">
-              <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
-            </div>
-            <ChatInputBar
-              ref={chatInputBarRef}
-              inputValue={inputValue}
-              setInputValue={setInputValue}
-              onSend={handleSend}
-              isLoading={isLoading}
-              disabled={!user}
-              user={user}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              webSearchEnabled={webSearchEnabled}
-              setWebSearchEnabled={setWebSearchEnabled}
-              attachedFiles={attachedFiles}
-              setAttachedFiles={setAttachedFiles}
-            />
-            <FooterNotice />
-          </div>
-        </div>
-      </main>
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} afterLogin={() => { /* refreshed via useChat hook */ }} />
-    </div>
+-    <div className="relative min-h-screen w-full bg-transparent">
++    <div className="relative min-h-screen w-full bg-transparent">
+       {/* Fix Sidebar */}
+       <Sidebar
+         onLoginClick={() => setLoginOpen(true)}
+         onNewChatClick={handleNewChat}
+         onLoadChat={loadChat}
+         userId={user?.id}
+         onSignOutClick={handleSignOut}
+         triggerRefresh={sidebarRefreshKey}
+         collapsed={collapsed}
+         setCollapsed={setCollapsed}
+       />
+-      {/* Main content */}
+-      <main
+-        className={`flex flex-col min-h-screen transition-all duration-200 ${
+-          collapsed
+-            ? "ml-0"
+-            : ""
+-        }`}
+-        style={
+-          collapsed
+-            ? { marginLeft: 0 }
+-            : { marginLeft: SIDEBAR_WIDTH }
+-        }
+-      >
+-        <div className={`flex-1 flex flex-col min-h-0 ${
+-          collapsed ? "items-center" : ""
+-        }`}>
+-          <div className={`w-full ${
+-              collapsed
+-                ? "flex justify-center"
+-                : ""
+-            }`}
+-          >
+-            <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
+-              {/* Wait for profile loading */}
+-              {messages.length === 0 && !isLoading && !inputValue.trim() ? (
+-                <EmptyState
+-                  onPromptClick={handleSetInputValueAndFocus}
+-                  user={userProfile ?? undefined}
+-                />
+-              ) : (
+-                <ChatArea messages={messages} isLoading={isLoading} />
+-              )}
+-            </div>
+-          </div>
+-        </div>
+-        {/* Chat Input Area */}
+-        <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6">
+-          <div className={`mx-auto px-4 ${collapsed ? "max-w-3xl" : ""}`}>
+-            <div className="flex items-center justify-between mb-2">
+-              <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+-            </div>
+-            <ChatInputBar
+-              ref={chatInputBarRef}
+-              inputValue={inputValue}
+-              setInputValue={setInputValue}
+-              onSend={handleSend}
+-              isLoading={isLoading}
+-              disabled={!user}
+-              user={user}
+-              selectedModel={selectedModel}
+-              setSelectedModel={setSelectedModel}
+-              webSearchEnabled={webSearchEnabled}
+-              setWebSearchEnabled={setWebSearchEnabled}
+-              attachedFiles={attachedFiles}
+-              setAttachedFiles={setAttachedFiles}
+-            />
+-            <FooterNotice />
+-          </div>
+-        </div>
+-      </main>
+-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} afterLogin={() => { /* refreshed via useChat hook */ }} />
+-    </div>
++      {/* Main content */}
++      <main
++        className={`
++          flex flex-col min-h-screen transition-all duration-200 
++          ${collapsed ? "ml-0" : ""}
++          lg:pl-[${SIDEBAR_WIDTH}px]
++        `}
++        style={
++          collapsed
++            ? { marginLeft: 0 }
++            : { marginLeft: SIDEBAR_WIDTH }
++        }
++      >
++        <div className={`flex-1 flex flex-col min-h-0 ${
++          collapsed ? "items-center" : ""
++        }`}>
++          <div className={`
++            w-full 
++            ${collapsed ? "flex justify-center" : ""}
++            max-w-full sm:max-w-full md:max-w-3xl mx-auto
++          `}>
++            <div className={`flex-1 w-full`}>
++              {/* Wait for profile loading */}
++              {messages.length === 0 && !isLoading && !inputValue.trim() ? (
++                <EmptyState
++                  onPromptClick={handleSetInputValueAndFocus}
++                  user={userProfile ?? undefined}
++                />
++              ) : (
++                <ChatArea messages={messages} isLoading={isLoading} />
++              )}
++            </div>
++          </div>
++        </div>
++        {/* Chat Input Area */}
++        <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6 z-30">
++          <div className={`
++            mx-auto px-2 sm:px-4
++            w-full max-w-full md:max-w-3xl
++            ${collapsed ? "max-w-3xl" : ""}
++          `}>
++            <div className="flex items-center justify-between mb-2">
++              <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
++            </div>
++            <ChatInputBar
++              ref={chatInputBarRef}
++              inputValue={inputValue}
++              setInputValue={setInputValue}
++              onSend={handleSend}
++              isLoading={isLoading}
++              disabled={!user}
++              user={user}
++              selectedModel={selectedModel}
++              setSelectedModel={setSelectedModel}
++              webSearchEnabled={webSearchEnabled}
++              setWebSearchEnabled={setWebSearchEnabled}
++              attachedFiles={attachedFiles}
++              setAttachedFiles={setAttachedFiles}
++            />
++            <FooterNotice />
++          </div>
++        </div>
++      </main>
++      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} afterLogin={() => { /* refreshed via useChat hook */ }} />
++    </div>
   );
-};
-
-export default Index;
+ 
+ export default Index;

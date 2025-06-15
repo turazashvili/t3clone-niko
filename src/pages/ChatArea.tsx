@@ -89,11 +89,13 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto pt-8 pb-24"
-      style={{ outline: "none" }}
+      className="flex-1 overflow-y-auto pt-4 sm:pt-8 pb-24 overscroll-y-contain"
+      style={{ outline: "none", WebkitOverflowScrolling: "touch" }}
       tabIndex={0}
     >
-      <div className="max-w-3xl mx-auto px-4 space-y-4">
+      <div className="
+        mx-auto px-2 sm:px-4 space-y-4 w-full max-w-full md:max-w-3xl
+      ">
         {dedupedMessages.map((msg, index) => (
           <ChatMessage key={msg.id || index} msg={msg} />
         ))}

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
@@ -91,11 +90,11 @@ const ChatView = () => {
         setCollapsed={setCollapsed}
       />
       <main
-        className={`flex flex-col min-h-screen transition-all duration-200 ${
-          collapsed
-            ? "ml-0"
-            : ""
-        }`}
+        className={`
+          flex flex-col min-h-screen transition-all duration-200
+          ${collapsed ? "ml-0" : ""}
+          lg:pl-[${SIDEBAR_WIDTH}px]
+        `}
         style={
           collapsed
             ? { marginLeft: 0 }
@@ -103,18 +102,17 @@ const ChatView = () => {
         }
       >
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex items-center justify-between pt-4 pb-2 max-w-3xl mx-auto px-4">
+          <div className="flex items-center justify-between pt-4 pb-2 max-w-full sm:max-w-full md:max-w-3xl mx-auto px-2 sm:px-4">
             <div />
             {/* Only show if this is a valid chatId */}
             <ShareChatButton chatId={chatId} />
           </div>
-          <div className={`w-full ${
-              collapsed
-                ? "flex justify-center"
-                : ""
-            }`}
-          >
-            <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
+          <div className={`
+            w-full
+            ${collapsed ? "flex justify-center" : ""}
+            max-w-full sm:max-w-full md:max-w-3xl mx-auto
+          `}>
+            <div className="flex-1 w-full">
               {/* Wait for profile loading */}
               {messages.length === 0 && !isLoading && !inputValue.trim() ? (
                 <EmptyState onPromptClick={handleSetInputValueAndFocus} user={userProfile ?? undefined} />
@@ -124,8 +122,12 @@ const ChatView = () => {
             </div>
           </div>
         </div>
-        <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6">
-          <div className={`mx-auto px-4 ${collapsed ? "max-w-3xl" : ""}`}>
+        <div className="w-full sticky bottom-0 bg-transparent pt-2 pb-6 z-30">
+          <div className={`
+            mx-auto px-2 sm:px-4
+            w-full max-w-full md:max-w-3xl
+            ${collapsed ? "max-w-3xl" : ""}
+          `}>
             <div className="flex items-center justify-between mb-2">
               <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
             </div>
