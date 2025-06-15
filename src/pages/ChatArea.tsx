@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
@@ -46,12 +45,10 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
   const scrollToBottom = () => {
     const sc = scrollContainerRef.current;
     if (sc) {
-      // Diagnostics
       console.log("[ChatArea] scrollToBottom called");
       console.log("  scrollTop before:", sc.scrollTop, "  clientHeight:", sc.clientHeight, "  scrollHeight:", sc.scrollHeight);
       sc.scrollTop = sc.scrollHeight;
       setTimeout(() => {
-        // After render
         if (scrollContainerRef.current) {
           console.log("  scrollTop after:", scrollContainerRef.current.scrollTop);
         }
@@ -109,19 +106,27 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     // eslint-disable-next-line
   }, [messages, isLoading, isAtBottom]);
 
-  // Scroll to bottom if a new user message is added
+  // Enhanced debug effect for user message scroll event
   useEffect(() => {
-    // Whenever the last message is from the user AND it is new, scroll to bottom
+    const messagesLen = messages.length;
+    const lastMsg = messagesLen > 0 ? messages[messagesLen - 1] : undefined;
+    const prevRole = prevLastMessageRole.current;
+
+    console.log("[ChatArea] useEffect run: messages.length =", messagesLen);
+    if (lastMsg) {
+      console.log("  lastMsg.id:", lastMsg.id, "lastMsg.role:", lastMsg.role);
+    }
+    console.log("  prevLastMessageRole.current:", prevRole);
+
     if (
-      messages.length > 0 &&
-      messages[messages.length - 1].role === "user" &&
-      prevLastMessageRole.current !== "user"
+      messagesLen > 0 &&
+      lastMsg?.role === "user" &&
+      prevRole !== "user"
     ) {
       console.log("[ChatArea] Detected new user message. Trigger scrollToBottom.");
       scrollToBottom();
     }
-    prevLastMessageRole.current =
-      messages.length > 0 ? messages[messages.length - 1].role : undefined;
+    prevLastMessageRole.current = lastMsg?.role;
   }, [messages]);
 
   // Debug logging: print all IDs before and after dedupe
@@ -155,4 +160,3 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
-
