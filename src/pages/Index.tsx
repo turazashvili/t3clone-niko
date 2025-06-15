@@ -8,7 +8,8 @@ import ModelSelector from "@/components/ModelSelector";
 import FooterNotice from "@/components/FooterNotice";
 import { useChat } from "@/hooks/useChat";
 import { UploadedFile } from "@/hooks/useFileUpload";
-import ShareChatButton from "@/components/ShareChatButton"; // <-- ADDED THIS IMPORT
+import ShareChatButton from "@/components/ShareChatButton";
+import ShareChatDialog from "@/components/ShareChatDialog";
 
 // Keep this in sync with Sidebar width!
 const SIDEBAR_WIDTH = 290; // px
@@ -91,19 +92,11 @@ const Index = () => {
             : { marginLeft: SIDEBAR_WIDTH }
         }
       >
-        {/* --- ABSOLUTELY POSITIONED SHARE BUTTON: top-right of chat panel --- */}
-        <div className="absolute z-50 top-4 right-6 flex flex-col items-end pointer-events-auto">
-          {/* Add a slight fallback so no share button is shown in empty/new chat */}
-          {currentChatId && (
-            <React.Suspense fallback={null}>
-              {/* Dynamically import to avoid initial load bloat if you want */}
-              <ShareChatButton chatId={currentChatId} />
-            </React.Suspense>
-          )}
-        </div>
-        <div className={`flex-1 flex flex-col min-h-0 ${
-          collapsed ? "items-center" : ""
-        }`}>
+        {/* --- GEAR DIALOG BUTTON absolute in chat area, sticky/fixed --- */}
+        {currentChatId && (
+          <ShareChatDialog chatId={currentChatId} />
+        )}
+        <div className={`flex-1 flex flex-col min-h-0 ${collapsed ? "items-center" : ""}`}>
           <div className={`
             w-full 
             ${collapsed ? "flex justify-center" : ""}
