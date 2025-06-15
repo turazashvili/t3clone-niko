@@ -333,12 +333,15 @@ export function useChat() {
   const createChatIfNeeded = useCallback(
     async () => {
       if (currentChatId) return currentChatId;
-      if (!user) return null;
+      if (!user || !session) return null;
 
       const url = "https://tahxsobdcnbbqqonkhup.functions.supabase.co/create-chat";
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ userId: user.id }),
       });
       const data = await res.json();
@@ -348,7 +351,7 @@ export function useChat() {
       }
       return data.chatId;
     },
-    [currentChatId, user]
+    [currentChatId, user, session]
   );
 
   // The new handleSendMessage: first ensures chatId, navigates if needed, then streams
