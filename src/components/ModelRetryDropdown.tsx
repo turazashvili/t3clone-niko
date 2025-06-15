@@ -37,14 +37,6 @@ const ModelRetryDropdown: React.FC<ModelRetryDropdownProps> = ({ onRetry, curren
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56 min-w-[200px] rounded-xl z-50 border bg-[#191525] text-white p-1">
-        <DropdownMenuItem
-          className="flex items-center gap-2 text-pink-400 font-medium"
-          onClick={() => onRetry(currentModel)}
-        >
-          <RefreshCcw size={16} className="mr-2" /> Retry same
-        </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-white/10" />
-        <DropdownMenuLabel className="opacity-70 px-2">or switch model</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-white/10" />
         {Object.keys(modelGroups).map((provider) => (
           <DropdownMenuSub key={provider}>
