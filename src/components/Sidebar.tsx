@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useSidebarSync } from "@/hooks/useSidebarSync";
 import DeleteChatButton from "./DeleteChatButton";
+import { useChatsRealtime } from "@/hooks/useChatsRealtime";
 
 interface Chat {
   id: string;
@@ -83,6 +84,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
     fetchRecentChats();
   }, [userId, sidebarRefreshKey, triggerRefresh]);
+
+  // Use new realtime hook for chat updates!
+  useChatsRealtime(userId, setRecentChats);
 
   // For mobile sidebar overlay, clicking a chat will close sidebar
   const handleChatClick = (chatId: string) => {
