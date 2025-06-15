@@ -113,7 +113,7 @@ const ChatView = () => {
             }`}
           >
             <div className={`flex-1 ${collapsed ? "max-w-3xl" : ""}`}>
-              {messages.length === 0 && !isLoading ? (
+              {messages.length === 0 && !isLoading && !inputValue.trim() ? (
                 <EmptyState onPromptClick={handleSetInputValueAndFocus} />
               ) : (
                 <ChatArea messages={messages} isLoading={isLoading} />
