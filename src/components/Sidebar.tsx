@@ -7,6 +7,7 @@ import { useSidebarSync } from "@/hooks/useSidebarSync";
 import DeleteChatButton from "./DeleteChatButton";
 import { useChatsRealtime } from "@/hooks/useChatsRealtime";
 import { useLocation } from "react-router-dom";
+import SidebarChatTitle from "./SidebarChatTitle";
 
 interface Chat {
   id: string;
@@ -204,16 +205,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div
                   key={chat.id}
                   className={`py-2 px-2 sm:px-3 rounded-md text-white/80 font-medium cursor-pointer transition mb-1 flex items-center gap-2
-                    hover:bg-[#251933] hover:text-white
-                    ${isActive ? "bg-accent/30 border border-accent text-white shadow" : ""}
-                  `}
+                  hover:bg-[#251933] hover:text-white
+                  ${isActive ? "bg-accent/30 border border-accent text-white shadow" : ""}
+                `}
                   onClick={() => handleChatClick(chat.id)}
                   style={isActive ? { fontWeight: 700 } : undefined}
                 >
                   <MessageSquare size={16} className="text-white/60 shrink-0" />
-                  <span className="truncate flex-1 text-sm">
-                    {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
-                  </span>
+                  <SidebarChatTitle
+                    title={chat.title || ""}
+                    fallback={`Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
+                  />
+                  <div className="ml-2 flex-shrink-0">
+                    <DeleteChatButton chatId={chat.id} onDeleted={() => {
+                      setRecentChats(cs => cs.filter(c => c.id !== chat.id));
+                      if (typeof window !== "undefined" && window.location.pathname === `/chat/${chat.id}`) {
+                        navigate("/");
+                      }
+                    }} />
+                  </div>
                 </div>
               );
             })}
@@ -328,9 +338,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 style={isActive ? { fontWeight: 700 } : undefined}
               >
                 <MessageSquare size={16} className="text-white/60 shrink-0" />
-                <span className="truncate flex-1 text-sm">
-                  {chat.title || `Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
-                </span>
+                <SidebarChatTitle
+                  title={chat.title || ""}
+                  fallback={`Chat from ${new Date(chat.created_at).toLocaleDateString()}`}
+                />
                 <div className="ml-2 flex-shrink-0">
                   <DeleteChatButton chatId={chat.id} onDeleted={() => {
                     setRecentChats(cs => cs.filter(c => c.id !== chat.id));
