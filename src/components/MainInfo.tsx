@@ -1,32 +1,33 @@
-
 import React from "react";
 
 const requirements = [
-  { title: "Chat with Various LLMs", description: "Talk to multiple large language models." },
-  { title: "Authentication & Sync", description: "Sign in and sync your chats across devices." },
-  { title: "Attachment Support", description: "Upload files (images and PDFs)." },
-  { title: "Syntax Highlighting", description: "Beautiful code formatting and highlighting." },
-  { title: "Chat Sharing", description: "Share conversations with others." },
-  { title: "Web Search", description: "Real-time web search integration." },
-  { title: "Mobile App", description: "Fully mobile responsive experience." },
+  { title: "Chat with LLMs", description: "Seamlessly converse with multiple state-of-the-art language models." },
+  { title: "Auth & Sync", description: "Sign in and instantly sync your chats across all your devices." },
+  { title: "Attachments", description: "Effortlessly upload and share images or PDFs in your conversations." },
+  { title: "Syntax Highlighting", description: "Enjoy beautiful, readable code with smart syntax highlighting." },
+  { title: "Chat Sharing", description: "Share your favorite conversations with a single click." },
+  { title: "Web Search", description: "Supercharge chats with real-time web search integration." },
+  { title: "Mobile App", description: "Experience a fully responsive design—perfect on any device." },
 ];
 
 const MainInfo: React.FC = () => {
   return (
     <div className="bg-[#21172a]/90 rounded-2xl mt-10 px-6 py-6 shadow-lg border border-[#3B2B55] animate-fade-in w-full max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-1 text-white tracking-tight">Core Requirements</h2>
-      <div className="mb-5 text-zinc-300 text-base">The minimum to qualify for a prize</div>
-      <ul className="space-y-4">
+      <h2 className="text-2xl font-bold mb-2 text-white tracking-tight flex items-center gap-3">
+        Why T3.chat Stands Out
+        <span className="inline-block bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full ml-2 animate-pulse">
+          ⚡ Fully Serverless
+        </span>
+      </h2>
+      <div className="text-zinc-300 text-sm mb-4 ml-1">Built for speed, scale, and hackathon innovation.</div>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
         {requirements.map((r) => (
-          <li key={r.title}>
-            <div className="font-semibold text-white text-lg mb-0.5 flex gap-2 items-center">• {r.title}</div>
-            {r.description && <div className="text-zinc-400 text-sm ml-5">{r.description}</div>}
+          <li key={r.title} className="flex flex-col">
+            <span className="font-semibold text-white text-base flex gap-2 items-center">• {r.title}</span>
+            {r.description && <span className="text-zinc-400 text-xs ml-5">{r.description}</span>}
           </li>
         ))}
       </ul>
-      <div className="mt-6 text-pink-400 font-semibold text-base">
-        Did I miss something?
-      </div>
     </div>
   );
 };
