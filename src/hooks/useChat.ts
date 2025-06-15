@@ -380,21 +380,20 @@ export function useChat() {
         return;
       }
 
-      // If creating a new chat, ensure strict sequential logic:
       if (!effectiveChatId) {
         // 1. Create the new chat (wait)
         effectiveChatId = await createChatIfNeeded();
         if (!effectiveChatId) return;
+        // --- FIX: Set currentChatId immediately ---
+        setCurrentChatId(effectiveChatId);
         // 2. Navigate and wait
         navigate(`/chat/${effectiveChatId}`);
         await waitForNavigationToChat(effectiveChatId);
-        // 3. Only then, update local state for chat id
-        setCurrentChatId(effectiveChatId);
       } else if (window.location.pathname !== `/chat/${effectiveChatId}`) {
-        // If we're in the wrong chat, navigate there and wait
+        // If we're in the wrong chat, navigate and wait
+        setCurrentChatId(effectiveChatId); // Set first!
         navigate(`/chat/${effectiveChatId}`);
         await waitForNavigationToChat(effectiveChatId);
-        setCurrentChatId(effectiveChatId);
       }
 
       // Only NOW start streaming
