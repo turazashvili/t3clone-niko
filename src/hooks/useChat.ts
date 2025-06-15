@@ -327,13 +327,7 @@ export function useChat() {
   );
 
   // Helper: wait for navigation to /chat/:chatId
-  const waitForNavigationToChat = useCallback(async (chatId: string) => {
-    if (window.location.pathname === `/chat/${chatId}`) return;
-    let maxTries = 120;
-    while (window.location.pathname !== `/chat/${chatId}` && maxTries-- > 0) {
-      await new Promise((r) => setTimeout(r, 15));
-    }
-  }, []);
+  // const waitForNavigationToChat = useCallback(async (chatId: string) => { ... }, []);
 
   // Helper to create a chat if needed
   const createChatIfNeeded = useCallback(
@@ -380,20 +374,17 @@ export function useChat() {
         return;
       }
 
+      // If there is no chat yet, create one and navigate IMMEDIATELY
       if (!effectiveChatId) {
-        // 1. Create the new chat (wait)
         effectiveChatId = await createChatIfNeeded();
         if (!effectiveChatId) return;
-        // --- FIX: Set currentChatId immediately ---
         setCurrentChatId(effectiveChatId);
-        // 2. Navigate and wait
         navigate(`/chat/${effectiveChatId}`);
-        await waitForNavigationToChat(effectiveChatId);
+        // No waiting, start streaming right away!
       } else if (window.location.pathname !== `/chat/${effectiveChatId}`) {
-        // If we're in the wrong chat, navigate and wait
-        setCurrentChatId(effectiveChatId); // Set first!
+        setCurrentChatId(effectiveChatId);
         navigate(`/chat/${effectiveChatId}`);
-        await waitForNavigationToChat(effectiveChatId);
+        // No waiting, start streaming immediately!
       }
 
       // Only NOW start streaming
@@ -419,6 +410,8 @@ export function useChat() {
           // No action needed (already handled)
         },
       });
+
+      // Do NOT manually fetch chat messages here; realtime will update via useMessagesRealtime.
     },
     [
       inputValue,
@@ -434,7 +427,7 @@ export function useChat() {
       setMessages,
       navigate,
       createChatIfNeeded,
-      waitForNavigationToChat
+      // waitForNavigationToChat  // <-- removed
     ]
   );
 
