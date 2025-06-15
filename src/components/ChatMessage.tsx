@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { Bot, User as UserIcon, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
+import { Bot, ChevronDown, File as FileIcon, Image as ImageIcon } from "lucide-react";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -53,7 +54,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     setSelectedFile(null);
   };
 
-  // Add context/hook for main chat handlers
   const {
     handleSendMessage,
     setMessages,
@@ -65,90 +65,70 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
     isLoading,
   } = useChat();
 
-  // Add UI editing state
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(msg.content);
 
-  // Helper: Find the latest empty assistant message (for streaming/loader)
   const lastEmptyAssistantId = React.useMemo(() => {
     const assistants = messages.filter(m => m.role === "assistant" && (!m.content || m.content.trim() === ""));
     return assistants.length > 0 ? assistants[assistants.length - 1].id : undefined;
   }, [messages]);
 
-  // Handle Retry (modelId: string)
   const handleRetry = async (modelId: string) => {
-    console.log("handleRetry called", { modelId, msg, currentChatId });
-
-    // Remove messages after this user message IMMEDIATELY on UI
     const idx = messages.findIndex(m => m.id === msg.id);
     if (idx !== -1) {
       setMessages(messages.slice(0, idx + 1));
     }
-
-    // Call editMessage with only a modelOverride! This will also trigger backend to clear trailing messages
     await editMessage(msg.id, msg.content, modelId);
-    // No need to handle optimistic assistant placeholder: realtime sync will add new assistant message when available
   };
 
-  // Enhanced handleEdit: open inline editor, allow submit
   const handleEditClick = () => {
-    console.log("Edit button clicked for message:", msg.id);
     setEditValue(msg.content);
     setIsEditing(true);
   };
 
-  // On edit submit
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editValue.trim() === msg.content.trim()) {
       setIsEditing(false);
       return;
     }
-    const ok = await editMessage(msg.id, editValue.trim());
+    await editMessage(msg.id, editValue.trim());
     setIsEditing(false);
   };
 
-  // Cancel edit
   const handleEditCancel = () => setIsEditing(false);
 
-  // Style user and assistant message container for consistent button positioning
   return (
     <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-      {/* 
-        Widen assistant responses to max-w-3xl centered.
-        Make user responses only as wide as the text (max-w-fit), right-aligned.
-      */}
       <div
         className={
           msg.role === "user"
-            ? // User: bubble only as wide as content, right-aligned
-              "w-full flex justify-end"
-            : // Assistant: full width in container
-              "w-full flex justify-start"
+            ? "w-full flex justify-end"
+            : "w-full flex justify-start"
         }
       >
         <div
           className={
             msg.role === "user"
               ? [
-                  // Make bubble only as wide as needed, up to a sensible max
                   "max-w-fit",
                   "self-end",
-                  "px-4", // still some horizontal padding
-                  "p-3",
+                  "px-2",    // reduced horizontal padding
+                  "py-2",    // reduced vertical padding
                   "rounded-xl",
                   "flex",
-                  "flex-col", // vertical layout, so text and actions are stacked
-                  "items-end", // align right items
-                  "gap-2",
+                  "flex-col",
+                  "items-end",
+                  "gap-1",
                   "relative",
-                  "bg-accent",
+                  // Vibrant user bubble
+                  "bg-[#AB21B4]", // vivid purple (adjust to match screenshot)
                   "text-white",
                   "rounded-br-none",
-                  "text-right" // right-align all text in user message
+                  "text-right",
+                  "shadow-sm"
                 ].join(" ")
               : [
-                  // Assistant: same as before, wide bubble
                   "w-full",
                   "max-w-3xl",
                   "mx-auto",
@@ -163,10 +143,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   "bg-[#271d37]",
                   "text-white/90",
                   "rounded-bl-none",
+                  "shadow-sm"
                 ].join(" ")
           }
         >
-          {msg.role === 'assistant' && <Bot size={20} className="text-white/70 mt-0.5 shrink-0" />}
+          {msg.role === 'assistant' && <Bot size={18} className="text-white/70 mt-0.5 shrink-0" />}
           <div className={`flex flex-col w-full ${msg.role === "user" ? "items-end" : ""}`}>
             {/* Reasoning (assistant only) */}
             {msg.role === "assistant" && msg.reasoning && (
@@ -219,22 +200,23 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
             )}
             {/* Main message content or loader */}
             {isEditing ? (
-              <form onSubmit={handleEditSubmit} className={`flex flex-col w-full gap-2 ${msg.role === "user" ? "items-end" : ""}`}>
+              <form onSubmit={handleEditSubmit} className={`flex flex-col w-full gap-1 ${msg.role === "user" ? "items-end" : ""}`}>
                 <textarea
                   value={editValue}
                   onChange={e => setEditValue(e.target.value)}
                   rows={2}
-                  className={`w-full rounded p-2 bg-white/10 text-white ${msg.role === "user" ? "text-right" : ""}`}
+                  className={`w-full rounded p-1 bg-white/10 text-white ${msg.role === "user" ? "text-right" : ""} text-sm`}
                   autoFocus
+                  style={{ minHeight: 32 }}
                 />
-                <div className="flex gap-2 mt-1">
-                  <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
-                  <button type="button" onClick={handleEditCancel} className="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">Cancel</button>
+                <div className="flex gap-1 mt-0.5">
+                  <button type="submit" className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-xs">Save</button>
+                  <button type="button" onClick={handleEditCancel} className="bg-gray-400 text-white px-2 py-1 rounded hover:bg-gray-500 text-xs">Cancel</button>
                 </div>
               </form>
             ) : (
               <>
-                <div className={`w-full min-h-[1.75rem] ${msg.role === "user" ? "text-right" : ""}`}>
+                <div className={`w-full min-h-[1.1rem] ${msg.role === "user" ? "text-right" : ""} text-sm leading-snug break-words`}>
                   {/* Show loader if this is the last assistant with empty content (streaming) */}
                   {(msg.role === "assistant" && (!msg.content || msg.content.trim() === "") && msg.id === lastEmptyAssistantId) ? (
                     <DotLoader />
@@ -242,10 +224,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                     <ReactMarkdown
                       components={{
                         p: (props) => (
-                          <p className={`my-1 leading-relaxed ${msg.role === "user" ? "text-right" : ""}`} {...props} />
+                          <p className={`my-0.5 leading-relaxed ${msg.role === "user" ? "text-right" : ""} text-sm`} {...props} />
                         ),
                         hr: (props) => (
-                          <hr className="my-3 border-white/10" {...props} />
+                          <hr className="my-2 border-white/10" {...props} />
                         ),
                         code({node, className, children, ...props}) {
                           const match = /language-(\w+)/.exec(className || "");
@@ -256,7 +238,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                                 style={atomDark}
                                 language={match[1]}
                                 PreTag="div"
-                                className="my-2 rounded-lg text-sm"
+                                className="my-2 rounded-lg text-xs"
                                 {...props}
                               >
                                 {String(children).replace(/\n$/, "")}
@@ -276,7 +258,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                   )}
                 </div>
                 {Array.isArray(msg.attachedFiles) && msg.attachedFiles.length > 0 && (
-                  <div className={`mt-3 flex flex-wrap gap-3 items-center ${msg.role === "user" ? "justify-end" : ""}`}>
+                  <div className={`mt-2 flex flex-wrap gap-2 items-center ${msg.role === "user" ? "justify-end" : ""}`}>
                     {msg.attachedFiles.map((file, idx) => (
                       <div key={idx} className="flex flex-col items-center">
                         {isImageType(file.type) ? (
@@ -289,10 +271,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                             <img
                               src={file.url}
                               alt={file.name}
-                              className="w-24 h-24 object-cover rounded shadow border border-white/10 group-hover:scale-105 transition"
+                              className="w-16 h-16 object-cover rounded shadow border border-white/10 group-hover:scale-105 transition"
                             />
-                            <div className="text-xs text-white/70 text-center mt-1 truncate max-w-[90px]">
-                              <ImageIcon size={14} className="inline-block mr-1 align-text-bottom" />
+                            <div className="text-xs text-white/70 text-center mt-1 truncate max-w-[70px]">
+                              <ImageIcon size={12} className="inline-block mr-1 align-text-bottom" />
                               {file.name}
                             </div>
                           </button>
@@ -303,7 +285,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
                             className="flex items-center gap-1 text-xs text-blue-200 hover:underline px-2 py-1 rounded bg-white/10"
                             tabIndex={0}
                           >
-                            <FileIcon size={14} />
+                            <FileIcon size={12} />
                             {file.name}
                           </button>
                         )}
@@ -314,18 +296,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
               </>
             )}
           </div>
-          {/* Buttons for user message */}
+          {/* Buttons for user message, now compact */}
           {msg.role === 'user' && !isEditing && (
-            <div className="w-full flex justify-end mt-2">
-              <MessageActionsBar
-                messageContent={msg.content}
-                onRetry={handleRetry}
-                currentModel={selectedModel}
-                onEdit={handleEditClick}
-              />
+            <div className="w-full flex justify-end mt-1 -mb-1">
+              <div className="flex items-center gap-1">
+                <MessageActionsBar
+                  messageContent={msg.content}
+                  onRetry={handleRetry}
+                  currentModel={selectedModel}
+                  onEdit={handleEditClick}
+                />
+              </div>
             </div>
           )}
-          {/* Attachment Viewer Dialog */}
           <AttachmentViewerDialog open={viewerOpen} file={selectedFile} onClose={handleCloseViewer} />
         </div>
       </div>
@@ -334,3 +317,4 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ msg }) => {
 };
 
 export default ChatMessage;
+
