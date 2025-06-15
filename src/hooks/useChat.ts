@@ -399,12 +399,8 @@ export function useChat() {
       if (inputOverride === undefined) setInputValue("");
       setIsLoading(true);
 
-      // DISABLE ALL OPTIMISTIC: Confirm no local user message is inserted
-      // All messages must come ONLY from realtime/DB, log all local setMessages
-      // Do not insert any placeholder message here.
-
-      console.log("[useChat] Sending message to edge function, expecting only realtime events to insert user message. currentChatId:", effectiveChatId);
-
+      // Remove custom callback that caused the issue:
+      // Always pass setMessages function reference instead of a wrapper
       await sendMessageStreaming({
         inputValue: contentToSend,
         user,
@@ -413,11 +409,7 @@ export function useChat() {
         webSearchEnabled: typeof webSearch === "boolean" ? webSearch : webSearchEnabled,
         setCurrentChatId,
         setSidebarRefreshKey,
-        setMessages: (msgs) => {
-          // Log every time setMessages is triggered for debugging
-          console.log("[useChat] setMessages called in sendMessageStreaming (should only happen by edge/realtime):", msgs.map(m => m.id));
-          setMessages(msgs);
-        },
+        setMessages, // Pass the function reference directly to avoid TS errors
         setIsLoading,
         attachedFiles: attachedFiles || [],
         onFirstMessageDone: () => {
@@ -430,7 +422,6 @@ export function useChat() {
         onNewChatId: (_chatId: string) => {
           // No action needed
         },
-        // Don't set any optimistic flags/messages!
       });
 
       // No further action needed, realtime will update via useMessagesRealtime.
