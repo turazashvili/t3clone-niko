@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from "react";
 import ChatMessage from "@/components/ChatMessage";
 
@@ -13,12 +14,28 @@ interface ChatAreaProps {
   isLoading: boolean;
 }
 
+// Enhanced deduplication by role+content for user messages, fallback to id for assistants
 const dedupeMessages = (messages: Message[]) => {
-  const seen = new Map<string, Message>();
+  const userSet = new Set<string>();
+  const assistantSet = new Set<string>();
+  const deduped: Message[] = [];
   for (const msg of messages) {
-    seen.set(msg.id, msg); // last occurrence wins
+    if (msg.role === "user") {
+      // Dedupe user messages by content+role+created_at within a 60s window
+      const tag = `${msg.role}:${msg.content.trim()}:${msg.created_at?.slice(0, 16)}`;
+      if (!userSet.has(tag)) {
+        userSet.add(tag);
+        deduped.push(msg);
+      }
+    } else {
+      // For assistant, dedupe strictly by id
+      if (!assistantSet.has(msg.id)) {
+        assistantSet.add(msg.id);
+        deduped.push(msg);
+      }
+    }
   }
-  return Array.from(seen.values());
+  return deduped;
 };
 
 const SCROLL_THRESHOLD = 80; // px, how close to bottom still counts as "at bottom"
@@ -82,10 +99,14 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
     // eslint-disable-next-line
   }, [messages, isLoading, isAtBottom]);
 
-  // Dedupe messages by id before rendering
+  // Debug logging
+  useEffect(() => {
+    console.log("ChatArea messages", messages);
+  }, [messages]);
+
+  // Dedupe messages before rendering
   const dedupedMessages = dedupeMessages(messages);
 
-  // Chat area is scrollable div
   return (
     <div
       ref={scrollContainerRef}
@@ -106,3 +127,4 @@ const ChatArea: React.FC<ChatAreaProps> = ({ messages, isLoading }) => {
 };
 
 export default ChatArea;
+
