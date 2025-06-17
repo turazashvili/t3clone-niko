@@ -1,73 +1,82 @@
-# Welcome to your Lovable project
+# T3.chat Clone – Cloneathon Submission
 
-## Project info
+## 🚀 Project Overview
 
-**URL**: https://lovable.dev/projects/5bc8649e-99be-40f6-91f2-8cd1ad9720bf
+This repository is a submission for [cloneathon.t3.chat](https://cloneathon.t3.chat), showcasing a modern, fully serverless chat platform inspired by T3.chat. The project demonstrates how to build a scalable, real-time chat app using the latest web technologies and a 100% serverless backend powered by Supabase.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🌟 Key Features
 
-**Use Lovable**
+- **100% Serverless**: No custom backend servers—everything runs on Supabase and serverless functions.
+- **Multi-LLM Support**: Chat with multiple large language models (OpenAI, Anthropic, Google, and more).
+- **Supabase Auth**: Secure authentication and user management with Supabase Auth.
+- **Real-Time Sync Engine**: Chats and messages sync instantly across devices using Supabase Realtime.
+- **Supabase Storage**: Upload and share images or PDFs directly in chat, stored securely in Supabase Storage.
+- **Chat Sharing**: Share conversations with a public link.
+- **Web Search Integration**: Optionally enhance chats with real-time web search.
+- **Mobile Responsive**: Fully responsive UI for desktop and mobile.
+- **Syntax Highlighting**: Beautiful code formatting for technical conversations.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5bc8649e-99be-40f6-91f2-8cd1ad9720bf) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Tech Stack
 
-**Use your preferred IDE**
+- **Frontend**: React, Vite, TypeScript, Tailwind CSS, shadcn/ui
+- **Backend/Infra**: Supabase (Auth, Database, Storage, Realtime)
+- **Serverless Functions**: For LLM proxying and chat logic
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🏗️ Architecture
 
-Follow these steps:
+- **Frontend**: Handles all UI, chat logic, and LLM selection. Communicates with Supabase for authentication, storage, and real-time updates.
+- **Supabase**: 
+  - **Auth**: Manages user sign-in/sign-up and session management.
+  - **Database**: Stores chats, messages, and user metadata.
+  - **Storage**: Handles file uploads (images, PDFs) attached to messages.
+  - **Realtime**: Powers the sync engine for instant updates across devices.
+- **Serverless Functions**: Used for securely proxying requests to LLM APIs and handling advanced chat logic.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🧑‍💻 Running Locally
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. **Clone the repository:**
+   ```sh
+   git clone <your-fork-url>
+   cd t3clone-niko
+   ```
+2. **Install dependencies:**
+   ```sh
+   npm install
+   # or
+   pnpm install
+   ```
+3. **Set up environment variables:**
+   - Copy `.env.example` to `.env` and fill in your Supabase project credentials.
+4. **Start the development server:**
+   ```sh
+   npm run dev
+   ```
+5. **Open [http://localhost:5173](http://localhost:5173) in your browser.**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 📦 Deployment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+This project is optimized for Vercel, Netlify, or any static hosting provider. All backend logic is handled by Supabase and serverless functions.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🤝 Credits
 
-## What technologies are used for this project?
+- Inspired by [T3.chat](https://t3.chat)
+- Built for [cloneathon.t3.chat](https://cloneathon.t3.chat)
+- Powered by [Supabase](https://supabase.com)
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📄 License
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/5bc8649e-99be-40f6-91f2-8cd1ad9720bf) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT
